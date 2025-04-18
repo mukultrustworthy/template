@@ -3,111 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Testimonial</title>
+  <title>Text Testimonial</title>
   <style>
+    :root {
+      --accent-color: #3498db;
+      --accent-color-light: #e1f0fa;
+      --accent-text-color: #333333;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
     .testimonial-container {
-      max-width: 600px;
+      max-width: 500px;
       margin: 0 auto;
       padding: 20px;
-      font-family: Arial, sans-serif;
-      border: 1px solid #e0e0e0;
       border-radius: 8px;
-      background-color: #f9f9f9;
+      background-color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .testimonial-header {
       display: flex;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
     .company-logo {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      margin-right: 15px;
+      border: 1px solid var(--accent-color);
     }
     .company-name {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: bold;
-      color: #333;
+      color: var(--accent-color);
+      margin: 0;
     }
     .testimonial-content {
       margin-bottom: 20px;
+      padding: 15px;
+      background-color: var(--accent-color-light);
+      border-radius: 6px;
     }
     .testimonial-question {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
-      color: #555;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .testimonial-answer {
-      font-size: 16px;
-      line-height: 1.6;
-      color: #444;
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--accent-text-color);
     }
     .testimonial-author {
       display: flex;
       align-items: center;
+      margin-top: 15px;
     }
     .author-image {
-      width: 60px;
-      height: 60px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      object-fit: cover;
-      margin-right: 15px;
+      margin-right: 10px;
     }
     .author-details {
       display: flex;
       flex-direction: column;
     }
     .author-name {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
-      color: #333;
     }
     .author-designation {
-      font-size: 14px;
+      font-size: 13px;
       color: #666;
-    }
-    .rating {
-      margin-top: 15px;
-      display: flex;
-      align-items: center;
-    }
-    .stars {
-      color: #ffcc00;
-      font-size: 20px;
-      margin-right: 10px;
-    }
-    .rating-value {
-      font-weight: bold;
-      color: #333;
     }
   </style>
 </head>
 <body>
   <div class="testimonial-container">
     <div class="testimonial-header">
-      <img src="https://placehold.co/80x80/4285F4/white?text=A" alt="Company Logo" class="company-logo">
-      <h1 class="company-name">Acme Corporation</h1>
+      <img src="https://placehold.co/60x60/3498db/white?text=T" alt="Company Logo" class="company-logo">
     </div>
     
     <div class="testimonial-content">
-      <p class="testimonial-question">How has our product helped improve your workflow?</p>
-      <p class="testimonial-answer">Since implementing Acme's solution, we've seen a 40% increase in productivity and significant reduction in errors. The automated workflows have saved our team countless hours that we now spend on strategic initiatives instead of manual data entry.</p>
+      <p class="testimonial-question">What has been your experience with our service?</p>
+      <p class="testimonial-answer">
+        Tech Solutions transformed our customer experience. Their platform is intuitive and their support team is always responsive. We've been able to streamline our processes significantly.
+      </p>
     </div>
     
     <div class="testimonial-author">
-      <img src="https://placehold.co/60x60/FF5722/white?text=J" alt="Author Image" class="author-image">
+      <img src="https://placehold.co/40x40/3498db/white?text=M" alt="Author Image" class="author-image">
       <div class="author-details">
-        <span class="author-name">Jane Smith</span>
-        <span class="author-designation">Director of Operations, XYZ Industries</span>
+        <span class="author-name">Mark Johnson</span>
+        <span class="author-designation">CTO, Bright Innovations</span>
       </div>
-    </div>
-    
-    <div class="rating">
-      <div class="stars">★★★★★</div>
-      <span class="rating-value">5.0</span>
     </div>
   </div>
 </body>
