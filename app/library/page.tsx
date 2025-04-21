@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ElementDataMapping } from '@/utils/htmlInspector';
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { Search, Clock, ArrowLeft, X, Maximize } from 'lucide-react';
@@ -23,7 +22,7 @@ interface TemplateRecord {
   createdBy: string;
   updatedAt: string;
   tags: string[];
-  mappings: ElementDataMapping[];
+  placeholders: Record<string, unknown>;
   htmlUrl: string;
 }
 
@@ -112,16 +111,68 @@ export default function LibraryPage() {
 
   const generatePreviewHtml = async (template: TemplateRecord): Promise<string> => {
     try {
+      let htmlContent = '';
+      
       try {
         const response = await fetch(template.htmlUrl);
         if (response.ok) {
-          return await response.text();
+          htmlContent = await response.text();
         }
       } catch (fetchError) {
         console.warn('Using placeholder HTML since real content could not be fetched', fetchError);
+        htmlContent = generatePlaceholderHtml(template);
+        return htmlContent;
       }
-
-      return `<!DOCTYPE html>
+      
+      // If we have HTML content and placeholders, apply them
+      if (htmlContent && template.placeholders) {
+        // Process placeholders similar to TemplatePreview component
+        let processedHtml = htmlContent;
+        
+        function processObject(obj: Record<string, unknown>, prefix = '') {
+          Object.entries(obj).forEach(([key, value]) => {
+            const currentPath = prefix ? `${prefix}.${key}` : key;
+            
+            if (value !== null && typeof value === 'object') {
+              // Recursively process nested objects
+              processObject(value as Record<string, unknown>, currentPath);
+            } else {
+              // Replace placeholders in the format {{key}} with their values
+              const placeholder = `{{${currentPath}}}`;
+              const regex = new RegExp(placeholder, 'g');
+              processedHtml = processedHtml.replace(regex, String(value));
+            }
+          });
+        }
+        
+        processObject(template.placeholders);
+        
+        // Wrap in a proper HTML document with styles
+        return `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <style>
+                body { margin: 0; font-family: sans-serif; }
+                * { box-sizing: border-box; }
+              </style>
+            </head>
+            <body class="prose prose-sm max-w-none">
+              ${processedHtml}
+            </body>
+          </html>
+        `;
+      }
+      
+      return htmlContent || generatePlaceholderHtml(template);
+    } catch (error) {
+      console.error('Error generating preview HTML:', error);
+      return `<html><body><p>Preview not available</p></body></html>`;
+    }
+  };
+  
+  const generatePlaceholderHtml = (template: TemplateRecord): string => {
+    return `<!DOCTYPE html>
 <html>
 <head>
   <title>${template.type} Template</title>
@@ -153,20 +204,16 @@ export default function LibraryPage() {
 <body>
   <div class="template-container">
     <div class="template-heading">Template Preview</div>
-    ${template.mappings.map(mapping => {
-        const fieldPath = mapping.fieldPath.join('.');
-        return `<div class="field-item">
-        <strong>${fieldPath}:</strong> 
-        <span data-placeholder="${fieldPath}">{{${fieldPath}}}</span>
-      </div>`;
-      }).join('\n    ')}
+    ${Object.keys(template.placeholders || {}).map(fieldPath => {
+      const value = template.placeholders[fieldPath];
+      return `<div class="field-item">
+      <strong>${fieldPath}:</strong> 
+      <span data-placeholder="${fieldPath}">${value || `{{${fieldPath}}}`}</span>
+    </div>`;
+    }).join('\n    ')}
   </div>
 </body>
 </html>`;
-    } catch (error) {
-      console.error('Error generating preview HTML:', error);
-      return `<html><body><p>Preview not available</p></body></html>`;
-    }
   };
 
   const filteredTemplates = templates.filter(template => {
@@ -330,7 +377,7 @@ export default function LibraryPage() {
                 <Separator className="my-3" />
 
                 <div className="text-xs text-muted-foreground">
-                  <p><strong>Fields: </strong>{template.mappings.length}</p>
+                  <p><strong>Fields: </strong>{Object.keys(template.placeholders || {}).length}</p>
                   <p><strong>Created by: </strong>{template.createdBy}</p>
                 </div>
               </CardContent>

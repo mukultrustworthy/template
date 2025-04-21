@@ -18,7 +18,7 @@ export interface IDesign extends Document {
   publishedAt: Date | null;
   createdBy: string;
   updatedAt: Date;
-  placeholders: Map<string, string>;
+  placeholders: Record<string, unknown>;
   createdAt: Date;
 }
 

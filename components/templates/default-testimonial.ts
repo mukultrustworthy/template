@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+// Testimonial HTML template with placeholders
+export const DEFAULT_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,7 +7,7 @@
   <title>Text Testimonial</title>
   <style>
     :root {
-      --accent-color: #3498db;
+      --accent-color: {{accentColor}};
       --accent-color-light: #e1f0fa;
       --accent-text-color: #333333;
     }
@@ -86,23 +87,36 @@
 <body>
   <div class="testimonial-container">
     <div class="testimonial-header">
-      <img src="https://placehold.co/60x60/3498db/white?text=T" alt="Company Logo" class="company-logo">
+      <img src="{{companyLogo}}" alt="Company Logo" class="company-logo">
     </div>
     
     <div class="testimonial-content">
-      <p class="testimonial-question">What has been your experience with our service?</p>
+      <p class="testimonial-question">{{question}}</p>
       <p class="testimonial-answer">
-        Tech Solutions transformed our customer experience. Their platform is intuitive and their support team is always responsive. We've been able to streamline our processes significantly.
+        {{answer}}
       </p>
     </div>
     
     <div class="testimonial-author">
-      <img src="https://placehold.co/40x40/3498db/white?text=M" alt="Author Image" class="author-image">
+      <img src="{{author.image}}" alt="Author Image" class="author-image">
       <div class="author-details">
-        <span class="author-name">Mark Johnson</span>
-        <span class="author-designation">CTO, Bright Innovations</span>
+        <span class="author-name">{{author.name}}</span>
+        <span class="author-designation">{{author.designation}}</span>
       </div>
     </div>
   </div>
 </body>
-</html> 
+</html>`;
+
+// Default JSON data with placeholders
+export const DEFAULT_JSON = {
+  accentColor: "#3498db",
+  companyLogo: "https://placehold.co/60x60/3498db/white?text=T",
+  question: "What has been your experience with our service?",
+  answer: "Tech Solutions transformed our customer experience. Their platform is intuitive and their support team is always responsive. We've been able to streamline our processes significantly.",
+  author: {
+    name: "Mark Johnson",
+    designation: "CTO, Bright Innovations",
+    image: "https://placehold.co/40x40/3498db/white?text=M"
+  }
+}; 

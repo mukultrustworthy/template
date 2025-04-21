@@ -34,13 +34,10 @@ const DesignSchema = new Schema({
     type: Date,
     default: Date.now
   },
-  placeholders: {
-    type: Map,
-    of: String,
-    default: {}
-  }
+  placeholders: Schema.Types.Mixed
 }, {
-  timestamps: true
+  timestamps: true,
+  strict: false
 });
 
 const Design = (mongoose.models.Design as mongoose.Model<IDesign>) || 
