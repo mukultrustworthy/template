@@ -23,23 +23,22 @@ const FIELD_OPTIONS: FieldMapOption[] = [
 
 interface ElementMapperProps {
   selectedElement: HTMLElement | null;
-  onMapElement: (fieldPath: string[], value: string, options?: { isImageSrc?: boolean }) => void;
+  onAddPlaceholder: (fieldPath: string[], value: string, options?: { isImageSrc?: boolean }) => void;
   onSelectElementMode: () => void;
   isSelectMode: boolean;
 }
 
 export default function ElementMapper({ 
   selectedElement, 
-  onMapElement, 
+  onAddPlaceholder, 
   onSelectElementMode,
   isSelectMode 
 }: ElementMapperProps) {
   const [selectedField, setSelectedField] = useState<string>('');
   const [isImageSrcAttribute, setIsImageSrcAttribute] = useState<boolean>(false);
-  const [selectedColor, setSelectedColor] = useState<string>('#FF5722'); // Default orange accent
+  const [selectedColor, setSelectedColor] = useState<string>('#FF5722');
   const [customValue, setCustomValue] = useState<string>('');
 
-  // Update custom value when selected element changes
   useEffect(() => {
     if (selectedElement) {
       if (isImageSrcAttribute && selectedElement.tagName.toLowerCase() === 'img') {
@@ -52,33 +51,29 @@ export default function ElementMapper({
     }
   }, [selectedElement, isImageSrcAttribute]);
 
-  const handleMapElement = () => {
+  const handleAddPlaceholder = () => {
     if (selectedField) {
       const field = FIELD_OPTIONS.find(option => option.value === selectedField);
       if (field) {
-        // Determine the right value to use
         let contentValue = '';
         
-        // Determine if this is an image field either by type or by the isImageSrcAttribute flag
         const isImageField = field.type === 'image' || field.path.some(p => p === 'image' || p.includes('Url') || p.includes('url'));
         const shouldHandleAsImageSrc = isImageSrcAttribute || isImageField;
         
-        // Special handling for different field types
         if (field.type === 'color') {
           contentValue = selectedColor;
         } else if (shouldHandleAsImageSrc && selectedElement?.tagName.toLowerCase() === 'img') {
-          // Use src attribute for images
           contentValue = selectedElement?.getAttribute('src') || customValue;
         } else if (selectedElement) {
           contentValue = selectedElement.textContent || '';
         } else {
-          contentValue = customValue; // Use custom input for manual mapping
+          contentValue = customValue;
         }
         
-        onMapElement(field.path, contentValue, { isImageSrc: shouldHandleAsImageSrc });
-        setSelectedField(''); // Reset selection after mapping
-        setIsImageSrcAttribute(false); // Reset image src flag
-        setCustomValue(''); // Reset custom value
+        onAddPlaceholder(field.path, contentValue, { isImageSrc: shouldHandleAsImageSrc });
+        setSelectedField('');
+        setIsImageSrcAttribute(false);
+        setCustomValue('');
       }
     }
   };
@@ -230,10 +225,10 @@ export default function ElementMapper({
                 ? 'bg-green-600 text-white hover:bg-green-700' 
                 : 'bg-gray-200 text-gray-500 cursor-not-allowed'
             }`}
-            onClick={handleMapElement}
+            onClick={handleAddPlaceholder}
             disabled={!selectedField}
           >
-            Map Element
+            Add Placeholder
           </button>
         </div>
       )}
@@ -241,16 +236,12 @@ export default function ElementMapper({
   );
 }
 
-// Helper function to determine text color for good contrast
 function getContrastColor(hexColor: string): string {
-  // Convert hex to RGB
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
   
-  // Calculate perceived brightness (YIQ formula)
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
   
-  // Return black or white depending on brightness
   return yiq >= 128 ? '#000000' : '#ffffff';
 }
