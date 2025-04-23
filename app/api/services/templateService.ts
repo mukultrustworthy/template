@@ -173,38 +173,13 @@ export async function getAllTemplates() {
 
 export async function getTemplatesByType(
   type: string
-): Promise<TemplateRecord[]> {
+) {
   await dbConnect();
 
   const templates = (await Template.find({ type })
-    .populate("designId")
-    .lean()) as unknown as TemplateWithDesign[];
+    .lean());
 
-  return templates.map((template) => {
-    const design = template.designId;
-
-    return {
-      _id: template._id.toString(),
-      htmlRef: design?.htmlRef || "",
-      templateId: template._id.toString(),
-      type: template.type,
-      version: design?.version || 1,
-      isLatest: design?.isLatest || true,
-      publishedAt: design?.publishedAt
-        ? design.publishedAt instanceof Date
-          ? design.publishedAt
-          : new Date(design.publishedAt)
-        : new Date(),
-      createdBy: design?.createdBy || "unknown",
-      updatedAt: template.updatedAt.toISOString(),
-      tags: template.tags,
-      placeholders: template.placeholders || [],
-      jsonData: template.jsonData || {},
-      htmlUrl: design?.htmlRef
-        ? `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${design.htmlRef}`
-        : "",
-    } as TemplateRecord;
-  });
+  return templates;
 }
 
 export async function getTemplateById(

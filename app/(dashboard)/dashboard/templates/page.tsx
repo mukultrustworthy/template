@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import TemplatePreview from "@/components/TemplatePreview";
 
 export default function Templates() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,7 +26,7 @@ export default function Templates() {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
-  const [templatePreviews, setTemplatePreviews] = useState<
+  const [templateHtmlContent, setTemplateHtmlContent] = useState<
     Record<string, string>
   >({});
 
@@ -45,11 +46,11 @@ export default function Templates() {
           });
           setAllTags(Array.from(tags));
 
-          const previews: Record<string, string> = {};
+          const htmlContents: Record<string, string> = {};
           for (const template of data.templates) {
-            previews[template.id] = await generatePreviewHtml(template);
+            htmlContents[template._id] = await fetchTemplateHtml(template);
           }
-          setTemplatePreviews(previews);
+          setTemplateHtmlContent(htmlContents);
         }
       } catch (error) {
         console.error("Failed to fetch templates:", error);
@@ -63,55 +64,24 @@ export default function Templates() {
   }, []);
 
   const generatePlaceholderHtml = (template: TemplateRecord): string => {
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <title>${template.type} Template</title>
-  <meta charset="utf-8">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      margin: 10px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    [data-placeholder] {
-      background-color: rgba(59, 130, 246, 0.1);
-      border: 1px dashed #3b82f6;
-      padding: 2px 4px;
-      border-radius: 2px;
-      color: #2563eb;
-      font-weight: 500;
-    }
-    .template-heading {
-      font-size: 16px;
-      margin-bottom: 10px;
-    }
-    .field-item {
-      margin-bottom: 8px;
-    }
-  </style>
-</head>
-<body>
-  <div class="template-container">
-    <div class="template-heading">Template Preview</div>
-    ${Object.keys(template.jsonData || {})
-      .map((fieldPath) => {
-        const value = template.jsonData?.[fieldPath];
-        return `<div class="field-item">
-      <strong>${fieldPath}:</strong>
-      <span data-placeholder="${fieldPath}">${
-          value || `{{${fieldPath}}}`
-        }</span>
+    return `
+    <div class="template-container">
+      <div class="template-heading">Template Preview</div>
+      ${Object.keys(template.jsonData || {})
+        .map((fieldPath) => {
+          const value = template.jsonData?.[fieldPath];
+          return `<div class="field-item">
+        <strong>${fieldPath}:</strong>
+        <span data-placeholder="${fieldPath}">${
+            value || `{{${fieldPath}}}`
+          }</span>
+      </div>`;
+        })
+        .join("\n    ")}
     </div>`;
-      })
-      .join("\n    ")}
-  </div>
-</body>
-</html>`;
   };
 
-  const generatePreviewHtml = async (
+  const fetchTemplateHtml = async (
     template: TemplateRecord
   ): Promise<string> => {
     try {
@@ -131,50 +101,10 @@ export default function Templates() {
         return htmlContent;
       }
 
-      // If we have HTML content and placeholders, apply them
-      if (htmlContent && template.placeholders) {
-        // Process placeholders similar to TemplatePreview component
-        let processedHtml = htmlContent;
-
-        function processObject(obj: Record<string, unknown>, prefix = "") {
-          Object.entries(obj).forEach(([key, value]) => {
-            const currentPath = prefix ? `${prefix}.${key}` : key;
-
-            if (value !== null && typeof value === "object") {
-              // Recursively process nested objects
-              processObject(value as Record<string, unknown>, currentPath);
-            } else {
-              // Replace placeholders in the format {{key}} with their values
-              const placeholder = `{{${currentPath}}}`;
-              const regex = new RegExp(placeholder, "g");
-              processedHtml = processedHtml.replace(regex, String(value));
-            }
-          });
-        }
-
-        processObject(template.jsonData || {});
-
-        // Wrap in a proper HTML document with styles
-        return `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <style>
-                body { margin: 0; font-family: sans-serif; }
-                * { box-sizing: border-box; }
-              </style>
-            </head>
-            <body class="prose prose-sm max-w-none">
-              ${processedHtml}
-            </body>
-          </html>
-        `;
-      }
-
       return htmlContent || generatePlaceholderHtml(template);
     } catch (error) {
-      console.error("Error generating preview HTML:", error);
-      return `<html><body><p>Preview not available</p></body></html>`;
+      console.error("Error fetching template HTML:", error);
+      return `<p>Preview not available</p>`;
     }
   };
 
@@ -288,9 +218,9 @@ export default function Templates() {
                 </div>
               </CardHeader>
 
-              <div className="px-6">
+              <div className="px-0">
                 <div className="border rounded-md overflow-hidden">
-                  <div className="relative">
+                  <div className="relative w-full h-[300px] m-0 p-0">
                     <div className="absolute top-2 right-2 z-10">
                       {/* <Button
                         size="icon"
@@ -301,10 +231,9 @@ export default function Templates() {
                         <Maximize size={14} />
                       </Button> */}
                     </div>
-                    <iframe
-                      srcDoc={templatePreviews[template.id] || ""}
-                      className="aspect-square w-full border-none bg-white"
-                      title={`${template.type} Template Preview`}
+                    <TemplatePreview 
+                      html={templateHtmlContent[template._id] || ""}
+                      data={template.jsonData || {}}
                     />
                   </div>
                 </div>

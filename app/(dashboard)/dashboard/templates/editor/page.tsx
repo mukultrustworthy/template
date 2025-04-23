@@ -126,7 +126,7 @@ export default function Editor() {
   return (
     <main className="p-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Case Study Template Editor</h1>
+        <h1 className="text-3xl font-bold">Template Editor</h1>
         <div className="flex gap-2">
           <Button
             onClick={form.handleSubmit(onSubmit)}
@@ -140,8 +140,8 @@ export default function Editor() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7 space-y-6">
               <div className="space-y-5 p-6 border border-gray-200 rounded-md bg-gray-50">
                 <h2 className="text-lg font-semibold">Template Metadata</h2>
 
@@ -308,8 +308,8 @@ export default function Editor() {
               />
             </div>
 
-            <div>
-              <div className="sticky top-6 space-y-6">
+            <div className="lg:col-span-5">
+              <div className="sticky top-6">
                 <TemplatePreview html={html} data={jsonData} />
               </div>
             </div>
