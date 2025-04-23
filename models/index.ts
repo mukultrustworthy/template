@@ -1,9 +1,4 @@
-import Template from './template';
-import Design from './design';
-import CaseStudy from './caseStudy';
+import Template from "./template";
+import Collection from "./collection";
 
-export {
-  Template,
-  Design,
-  CaseStudy,
-};
+export { Template, Collection };
