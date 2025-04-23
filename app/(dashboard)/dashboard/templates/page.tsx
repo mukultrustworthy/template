@@ -231,7 +231,7 @@ export default function Templates() {
                         <Maximize size={14} />
                       </Button> */}
                     </div>
-                    <TemplatePreview 
+                    <TemplatePreview
                       html={templateHtmlContent[template._id] || ""}
                       data={template.jsonData || {}}
                     />

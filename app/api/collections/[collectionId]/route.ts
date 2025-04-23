@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { Collection } from "@/models";
 import { Types } from "mongoose";
 
-interface RouteParams {
-  params: {
-    collectionId: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ collectionId: string }> }
+) {
   try {
-    const { collectionId } = params;
+    const { collectionId } = await params;
 
     if (!Types.ObjectId.isValid(collectionId)) {
       return NextResponse.json(
@@ -42,9 +39,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ collectionId: string }> }
+) {
   try {
-    const { collectionId } = params;
+    const { collectionId } = await params;
     const body = await request.json();
     const { name, templateIds } = body;
 
@@ -84,9 +84,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ collectionId: string }> }
+) {
   try {
-    const { collectionId } = params;
+    const { collectionId } = await params;
 
     if (!Types.ObjectId.isValid(collectionId)) {
       return NextResponse.json(

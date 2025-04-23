@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,14 +34,13 @@ interface Collection {
   updatedAt: string;
 }
 
-interface PageProps {
-  params: {
-    collectionId: string;
-  };
-}
-
-export default function CollectionDetailPage({ params }: PageProps) {
+export default function CollectionDetailPage({
+  params,
+}: {
+  params: Promise<{ collectionId: string }>;
+}) {
   const router = useRouter();
+  const { collectionId } = use(params);
   const [collection, setCollection] = useState<Collection | null>(null);
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,11 +51,11 @@ export default function CollectionDetailPage({ params }: PageProps) {
   useEffect(() => {
     fetchCollection();
     fetchTemplates();
-  }, [params.collectionId]);
+  }, [collectionId]);
 
   const fetchCollection = async () => {
     try {
-      const response = await fetch(`/api/collections/${params.collectionId}`);
+      const response = await fetch(`/api/collections/${collectionId}`);
       const data = await response.json();
       if (data.collection) {
         setCollection(data.collection);
@@ -90,7 +89,7 @@ export default function CollectionDetailPage({ params }: PageProps) {
 
   const handleUpdate = async () => {
     try {
-      const response = await fetch(`/api/collections/${params.collectionId}`, {
+      const response = await fetch(`/api/collections/${collectionId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -120,7 +119,7 @@ export default function CollectionDetailPage({ params }: PageProps) {
     }
 
     try {
-      const response = await fetch(`/api/collections/${params.collectionId}`, {
+      const response = await fetch(`/api/collections/${collectionId}`, {
         method: "DELETE",
       });
 
