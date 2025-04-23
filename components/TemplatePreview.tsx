@@ -141,7 +141,7 @@ export default function TemplatePreview({ html, data }: TemplatePreviewProps) {
             style={{
               width: '1080px',
               height: '1080px',
-              border: 'none',
+              border: "1px solid black",
               transformOrigin: 'top left',
               position: 'absolute',
               top: 0,
