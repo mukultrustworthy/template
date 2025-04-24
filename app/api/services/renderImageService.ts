@@ -1,9 +1,23 @@
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { nanoid } from "nanoid";
+
+// Initialize S3 client for Cloudflare R2
+const R2 = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNTID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || "",
+  },
+});
+
 class RenderImageService {
   private logger = console;
 
   async htmlToJpeg(
-    html: string
-  ): Promise<{ buffer: Buffer; contentType: string }> {
+    html: string,
+    uploadToS3: boolean = false
+  ): Promise<{ buffer?: Buffer; contentType: string; url?: string }> {
     try {
       this.logger.info(html);
       const encodedHTML = Buffer.from(html, "utf8").toString("base64");
@@ -68,12 +82,67 @@ class RenderImageService {
         );
       }
 
+      // If uploadToS3 is true, upload the image to S3 and return the URL
+      if (uploadToS3) {
+        console.log("Uploading to R2");
+        const url = await this.uploadImageToR2(imageBuffer, contentType);
+        return {
+          contentType,
+          url,
+        };
+      }
+
+      // Otherwise return the buffer as before
       return {
         buffer: imageBuffer,
         contentType: contentType,
       };
     } catch (error) {
       this.logger.error("Error converting HTML to JPG:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Uploads an image buffer to Cloudflare R2 storage
+   * @param imageBuffer The image buffer to upload
+   * @param contentType The content type of the image
+   * @returns The URL of the uploaded image
+   */
+  private async uploadImageToR2(
+    imageBuffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    try {
+      const bucketName = process.env.CLOUDFLARE_BUCKET_NAME || "";
+      if (!bucketName) {
+        throw new Error("Cloudflare R2 bucket name not configured");
+      }
+
+      // Generate a unique filename with timestamp and random ID
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const uniqueId = nanoid(8);
+      const filename = `images/${timestamp}-${uniqueId}.jpg`;
+
+      // Upload to R2
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: filename,
+        Body: imageBuffer,
+        ContentType: contentType,
+      });
+
+      await R2.send(command);
+
+      // Construct the URL
+      const fileUrl = `${process.env.CLOUDFLARE_R2_ASSETS_URL}/${filename}`;
+      console.log(fileUrl);
+
+      this.logger.info(`Uploaded image to Cloudflare R2: ${fileUrl}`);
+      return fileUrl;
+    } catch (error) {
+      console.log(error);
+      this.logger.error("Error uploading image to Cloudflare R2:", error);
       throw error;
     }
   }
