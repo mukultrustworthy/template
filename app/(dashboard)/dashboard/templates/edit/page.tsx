@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ const formSchema = z.object({
   jsonData: z.record(z.unknown()),
 });
 
-export default function EditTemplate() {
+function EditTemplateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get("id");
@@ -560,5 +560,13 @@ export default function EditTemplate() {
       </Form>
       <Toaster richColors position="top-right" />
     </main>
+  );
+}
+
+export default function EditTemplate() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <EditTemplateContent />
+    </Suspense>
   );
 }
