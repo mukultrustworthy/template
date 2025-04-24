@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Testimonial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/textfit@2.4.0/textFit.min.js"></script>
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0
+        }
+
+        /* 1️⃣ keep a plain black fallback for areas without gradient */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden
+        }
+
+
+        * {
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        #grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            /* ⬅️ bring in front */
+            mix-blend-mode: soft-light;
+            /* ⬅️ let colors blend */
+        }
+    </style>
+</head>
+
+<body class="flex justify-center items-start">
+    <!-- Grainy Overlay -->
+    <div id="grain-overlay"></div>
+
+
+    <div class="w-[1080px] h-[1080px] p-14 inline-flex flex-col  justify-start items-start gap-14 overflow-hidden">
+        <div class="self-stretch inline-flex justify-between items-center">
+            <img src="{{companyLogo}}" alt="Company Logo" class="w-[72px] h-[72px] object-contain rounded-full" />
+            <div class="flex items-center gap-5">
+                <span class="text-white text-2xl leading-[40.5px] tracking-[-0.48px] italic font-[200]">
+                    Powered By
+                </span>
+                <div class="flex items-center gap-[5.27px]">
+                    <svg width="49" height="36" viewBox="0 0 49 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g clip-path="url(#clip0_2431_25528)">
+                            <path
+                                d="M26.5306 8.03516C21.4895 10.1074 18.7959 13.2773 16.1014 18.5203H8.9288L2.05713 8.03516H26.5306Z"
+                                fill="white" />
+                            <path
+                                d="M46.1907 8.03125L38.9606 18.4301L28.4207 18.8013C28.4207 18.8013 21.3649 19.7037 19.7725 33.663L15.5537 27.4684C16.7239 20.1365 22.7839 10.2442 30.7726 8.03125H46.1907Z"
+                                fill="white" />
+                        </g>
+                        <defs>
+                            <clipPath id="clip0_2431_25528">
+                                <rect width="44.129" height="25.6318" fill="white"
+                                    transform="translate(2.05762 8.03125)" />
+                            </clipPath>
+                        </defs>
+                    </svg>
+
+                    <div class="text-white text-2xl tracking-[-0.48px] leading-[63.66px] italic font-[200]">
+                        Trustworthy
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="self-stretch flex-1 flex flex-col justify-between items-start mt-10">
+            <div class="self-stretch flex flex-col justify-start items-start gap-14">
+                <div id="question"
+                    class="self-stretch justify-center text-white text-5xl font-normal font-['Geist'] leading-[62.47px]">
+                    {{question}}</div>
+                <div id="options-container" class="self-stretch flex flex-col justify-start items-start gap-6 h-[520px]">
+                    <!-- Directly embedding testdata for fallback -->
+                    <script>
+                        // Fallback data in case template variables don't get replaced
+                        const fallbackData = {
+                            "options": [
+                                "Real-time collaboration",
+                                "Automation workflows",
+                                "Analytics dashboard",
+                                "Integration capabilities",
+                                "Customer support"
+                            ],
+                            "selectedIndex": [1, 2]
+                        };
+                    </script>
+                    <!-- Options will be dynamically generated here -->
+                </div>
+            </div>
+            <div class="flex items-center gap-8 w-[743px]">
+                <img src="{{author.image}}" alt="Author"
+                    class="w-[120px] h-[120px] rounded-full object-cover border border-white" />
+                <div class="flex flex-col gap-[2.93px]">
+                    <p class="text-white text-[48px] font-bold leading-[1.4] tracking-[-0.48px] font-['Inter']">
+                        {{author.name}}
+                    </p>
+                    <p class="text-white text-[28px] font-extralight italic font-['Inter']" style="
+                        line-height: 160%;
+                        letter-spacing: 1px;    
+                        font-weight: 200;
+                        ">
+                        {{author.designation}}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function hexToRgba(hex, alpha = 1) {
+          // Handle case where hex is not properly replaced
+          if (hex.includes('{{')) {
+            hex = "#8B5CF6"; // Default purple accent color if not replaced
+          }
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+    
+        function darkenColor(hex, amount = 40) {
+          const num = parseInt(hex.slice(1), 16);
+          let r = (num >> 16) - amount;
+          let g = ((num >> 8) & 0x00FF) - amount;
+          let b = (num & 0x0000FF) - amount;
+          r = Math.max(0, r);
+          g = Math.max(0, g);
+          b = Math.max(0, b);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+    
+        function lightenColor(hex, amount = 40) {
+          const num = parseInt(hex.slice(1), 16);
+          let r = (num >> 16) + amount;
+          let g = ((num >> 8) & 0x00FF) + amount;
+          let b = (num & 0x0000FF) + amount;
+          r = Math.min(255, r);
+          g = Math.min(255, g);
+          b = Math.min(255, b);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+    
+        function renderOptions(options, selectedIndices) {
+          // Handle the case where options are not properly parsed or are undefined
+          if (!options || !Array.isArray(options) || options.length === 0) {
+            console.warn("Options undefined or invalid, using fallback");
+            options = fallbackData.options;
+          }
+          
+          // Handle case where options contain template variables
+          if (options.length === 1 && typeof options[0] === 'string' && options[0].includes('{{')) {
+            console.warn("Options contain template variables, using fallback");
+            options = fallbackData.options;
+          }
+          
+          // Handle case where selectedIndices is invalid
+          if (selectedIndices === undefined || 
+              (typeof selectedIndices === 'string' && selectedIndices.includes('{{'))) {
+            console.warn("Selected indices invalid, using fallback");
+            selectedIndices = fallbackData.selectedIndex;
+          }
+          
+          const optionsContainer = document.getElementById('options-container');
+          optionsContainer.innerHTML = '';
+          
+          // Calculate dynamic sizes based on number of options (between 2-5)
+          const numOptions = Math.min(Math.max(options.length, 2), 5); // Ensure between 2-5
+          const gapSize = 6 * 4; // 6 (gap-6) * 4px = 24px total for gaps
+          const totalGapSpace = gapSize * (numOptions - 1);
+          const availableHeight = 450 - totalGapSpace;
+          const optionHeight = Math.floor(availableHeight / numOptions);
+          const marginTop = 40 - (numOptions - 5) * 10;
+          optionsContainer.style.marginTop = `${marginTop}px`;
+
+          // Improved font size calculation for 2-3 options
+          let fontSize;
+          if (numOptions <= 3) {
+            // For 2-3 options, use a slightly larger base font size
+            fontSize = 36 - ((numOptions - 2) * 2); // Less aggressive reduction
+          } else {
+            // For 4-5 options keep original scaling
+            fontSize = Math.max(22, 36 - ((numOptions - 2) * 4));
+          }
+          
+          console.log("Rendering options:", options);
+          console.log("Selected indices:", selectedIndices);
+          console.log(`Number of options: ${numOptions}, height: ${optionHeight}px, font: ${fontSize}px`);
+
+          options.forEach((option, index) => {
+            const isSelected = Array.isArray(selectedIndices) 
+              ? selectedIndices.includes(index) 
+              : index === selectedIndices;
+            
+            const optionElement = document.createElement('div');
+            // Increase padding for better visual balance with fewer options
+            const paddingClass = numOptions <= 3 ? 'p-6' : 'p-5';
+            optionElement.className = `self-stretch flex-1 ${paddingClass} ${isSelected ? 'bg-white' : 'bg-white/10'} rounded-xl inline-flex justify-start items-center gap-6 overflow-hidden max-h-[120px]`;
+            optionElement.style.height = `${optionHeight}px`;
+            
+            const circleElement = document.createElement('div');
+            // Make circles slightly larger for 2-3 options
+            const circleSize = numOptions <= 3 ? 'w-12 h-12' : 'w-10 h-10';
+            circleElement.className = `${circleSize} flex items-center justify-center rounded-full outline outline-1 outline-offset-[-0.94px] ${isSelected ? 'outline-black' : 'outline-gray-200'}`;
+            // Adjust inner circle size too
+            const innerCircleSize = numOptions <= 3 ? 'w-7 h-7' : 'w-6 h-6';
+            circleElement.innerHTML = isSelected ? `<div class="${innerCircleSize} rounded-full bg-black"></div>` : '';
+            
+            const textElement = document.createElement('div');
+            textElement.className = `flex-1 ${isSelected ? 'text-black' : 'text-gray-200'} font-medium font-['Inter']`;
+            textElement.style.fontSize = `${fontSize}px`;
+            textElement.style.lineHeight = numOptions <= 3 ? '1.5' : '1.4'; // Slightly increased line height for better readability
+            textElement.textContent = option;
+            
+            optionElement.appendChild(circleElement);
+            optionElement.appendChild(textElement);
+            optionsContainer.appendChild(optionElement);
+          });
+        }
+    
+        window.onload = () => {
+          const accentColor = "{{accentColor}}";
+          // Check if accentColor is a template variable that wasn't replaced
+          const finalAccentColor = accentColor.includes('{{') ? "#8B5CF6" : accentColor || "#8B5CF6";
+          const lighterAccent = lightenColor(finalAccentColor, 50);
+          const darkerAccent = darkenColor(finalAccentColor, 10);
+    
+          const grainSVG = `
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 1080 1080' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3CradialGradient id='grain-gradient' cx='80%25' cy='15%25' r='90%25' fx='80%25' fy='15%25'%3E%3Cstop offset='0%25' stop-opacity='1'/%3E%3Cstop offset='20%25' stop-opacity='0.8'/%3E%3Cstop offset='40%25' stop-opacity='0.2'/%3E%3Cstop offset='70%25' stop-opacity='0.1'/%3E%3Cstop offset='100%25' stop-opacity='0.05'/%3E%3C/radialGradient%3E%3Cfilter id='noise-filter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='6' stitchTiles='stitch'%3E%3C/feTurbulence%3E%3CfeColorMatrix type='saturate' values='0'%3E%3C/feColorMatrix%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.6'%3E%3C/feFuncR%3E%3CfeFuncG type='linear' slope='0.6'%3E%3C/feFuncG%3E%3CfeFuncB type='linear' slope='0.6'%3E%3C/feFuncB%3E%3CfeFuncA type='linear' slope='0.8'%3E%3C/feFuncA%3E%3C/feComponentTransfer%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.8' intercept='-0.3'/%3E%3CfeFuncG type='linear' slope='1.8' intercept='-0.3'/%3E%3CfeFuncB type='linear' slope='1.8' intercept='-0.3'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3C/defs%3E%3Crect width='100%25' height='100%25' filter='url(%23noise-filter)' fill='url(%23grain-gradient)'/%3E%3C/svg%3E")
+          `;
+    
+          const grainOverlay = document.getElementById("grain-overlay");
+          grainOverlay.style.backgroundImage = `
+            radial-gradient(circle at top right, ${lighterAccent} 0%, ${finalAccentColor} 50%, ${darkerAccent} 100%),
+            ${grainSVG}
+          `;
+          grainOverlay.style.backgroundRepeat = "no-repeat, repeat";    
+          grainOverlay.style.backgroundSize = "cover, auto";
+          grainOverlay.style.backgroundPosition = "top right, center";
+          grainOverlay.style.backgroundBlendMode = "hard-light";
+          grainOverlay.style.filter = "contrast(150%) brightness(100%)";
+    
+          // Special handling for array template variables
+          let optionsJSON = `{{options}}`;
+          let selectedIndexJSON = `{{selectedIndex}}`;
+          
+          let options = [];
+          let selectedIndices = [];
+          
+          // Process options - handle double-stringified JSON
+          try {
+            // Check if template variable wasn't replaced (still has braces)
+            if (optionsJSON.includes('{{') && optionsJSON.includes('}}')) {
+              console.log("Using fallback options data");
+              options = fallbackData.options;
+            } else {
+              // Handle double-stringified JSON (when an array is JSON.stringified twice)
+              if (optionsJSON.startsWith('"[') && optionsJSON.endsWith(']"')) {
+                // Remove outer quotes and parse the inner JSON string
+                optionsJSON = optionsJSON.substring(1, optionsJSON.length - 1);
+              }
+              
+              try {
+                options = JSON.parse(optionsJSON);
+              } catch (e) {
+                console.error("Failed to parse options JSON:", e);
+                // Try to handle string representation - could be escaped JSON or comma-separated
+                if (optionsJSON.includes('[') || optionsJSON.includes('{')) {
+                  try {
+                    const cleaned = optionsJSON.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    options = JSON.parse(cleaned);
+                  } catch (e2) {
+                    console.error("Failed to parse JSON after cleanup:", e2);
+                    // Last resort - fallback to comma-separated
+                    options = optionsJSON.split(',').map(o => o.trim());
+                  }
+                } else if (optionsJSON !== '{{options}}') {
+                  // Simple comma-separated string
+                  options = optionsJSON.split(',').map(o => o.trim());
+                } else {
+                  // Fallback for template variables not being replaced
+                  console.warn("Options template variable not replaced");
+                  options = ["Option 1", "Option 2", "Option 3", "Option 4"];
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error processing options:", error);
+            options = fallbackData.options || ["Option 1", "Option 2", "Option 3", "Option 4"];
+          }
+          
+          // Process selectedIndices with similar approach
+          try {
+            // Check if template variable wasn't replaced (still has braces)
+            if (selectedIndexJSON.includes('{{') && selectedIndexJSON.includes('}}')) {
+              console.log("Using fallback selected index data");
+              selectedIndices = fallbackData.selectedIndex;
+            } else {
+              // Handle double-stringified JSON
+              if (selectedIndexJSON.startsWith('"[') && selectedIndexJSON.endsWith(']"')) {
+                // Remove outer quotes and parse the inner JSON string
+                selectedIndexJSON = selectedIndexJSON.substring(1, selectedIndexJSON.length - 1);
+              }
+              
+              try {
+                selectedIndices = JSON.parse(selectedIndexJSON);
+              } catch (e) {
+                console.error("Failed to parse selectedIndices JSON:", e);
+                if (selectedIndexJSON.includes('[')) {
+                  try {
+                    const cleaned = selectedIndexJSON.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    selectedIndices = JSON.parse(cleaned);
+                  } catch (e2) {
+                    console.error("Failed to parse selectedIndices JSON after cleanup:", e2);
+                    selectedIndices = 0;
+                  }
+                } else if (selectedIndexJSON !== '{{selectedIndex}}') {
+                  // Simple number
+                  selectedIndices = isNaN(parseInt(selectedIndexJSON)) ? 0 : parseInt(selectedIndexJSON);
+                } else {
+                  // Fallback
+                  console.warn("Selected index template variable not replaced");
+                  selectedIndices = 0;
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error processing selectedIndices:", error);
+            selectedIndices = fallbackData.selectedIndex || 0;
+          }
+          
+          // For debugging
+          console.log("Options:", options);
+          console.log("Selected indices:", selectedIndices);
+          
+          // Render the options
+          renderOptions(options, selectedIndices);
+    
+          textFit(document.getElementById('question'), {
+            alignVert: true,
+            multiLine: true,
+            maxFontSize: 40,
+            minFontSize: 10
+          });
+          
+          // Handle author data fallback if template variables aren't replaced
+          const authorNameElement = document.querySelector('p.text-[48px]');
+          const authorDesignationElement = document.querySelector('p.text-[28px]');
+          const authorImageElement = document.querySelector('img[alt="Author"]');
+          
+          if (authorNameElement && authorNameElement.textContent.includes('{{')) {
+            authorNameElement.textContent = "Michael Rodriguez";
+          }
+          
+          if (authorDesignationElement && authorDesignationElement.textContent.includes('{{')) {
+            authorDesignationElement.textContent = "VP of Operations, TechSolutions Inc.";
+          }
+          
+          if (authorImageElement && authorImageElement.getAttribute('src').includes('{{')) {
+            authorImageElement.setAttribute('src', 'https://placehold.co/120x120/0f349d/white?text=MR');
+          }
+          
+          // Handle question fallback
+          const questionElement = document.getElementById('question');
+          if (questionElement && questionElement.textContent.includes('{{')) {
+            questionElement.textContent = "What was the most valuable feature of our platform for your team?";
+          }
+        };
+      </script>
+</body>
+
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testimonial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/textfit@2.4.0/textFit.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    * {
+      font-family: 'Inter', sans-serif !important;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 flex justify-center items-start">
+  <div class="flex flex-col items-start bg-white w-[1080px] h-[1080px]">
+    <!-- Top container -->
+    <div class="flex flex-col gap-[42px] pt-[50px] h-[400px] px-[60px] w-full bg-white">
+      <!-- Logos -->
+      <div class="flex justify-between items-center gap-[42px] w-full">
+        <img src="{{companyLogo}}" alt="Company Logo" class="w-[72px] h-[72px] object-contain rounded-full" />
+        <div class="flex items-center gap-5">
+          <span class="text-[#6F6D6D] text-2xl leading-[40.5px] tracking-[-0.48px] italic">
+            Powered By
+          </span>
+          <div class="flex items-center gap-[5.27px]">
+            <svg width="49" height="36" viewBox="0 0 49 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g clip-path="url(#clip0_2431_25528)">
+                <path
+                  d="M26.5306 8.03516C21.4895 10.1074 18.7959 13.2773 16.1014 18.5203H8.9288L2.05713 8.03516H26.5306Z"
+                  fill="#6F6D6D" />
+                <path
+                  d="M46.1907 8.03125L38.9606 18.4301L28.4207 18.8013C28.4207 18.8013 21.3649 19.7037 19.7725 33.663L15.5537 27.4684C16.7239 20.1365 22.7839 10.2442 30.7726 8.03125H46.1907Z"
+                  fill="#6F6D6D" />
+              </g>
+              <defs>
+                <clipPath id="clip0_2431_25528">
+                  <rect width="44.129" height="25.6318" fill="white" transform="translate(2.05762 8.03125)" />
+                </clipPath>
+              </defs>
+            </svg>
+
+            <div class="text-[#6F6D6D] text-2xl tracking-[-0.48px] leading-[40.5px] italic">
+              Trustworthy
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question block -->
+      <div id="questionText" class="self-stretch text-[32px] h-[150px] tracking-[-0.39px] overflow-hidden">
+        <span class="block w-full h-full">
+          {{question}}
+        </span>
+      </div>
+    </div>
+
+    <!-- Testimonial container -->
+    <div id="testimonialContainer"
+      class="flex flex-col gap-[61px] px-[60px] py-[60px] rounded-tl-[40px] rounded-tr-[40px] w-full"
+      data-accent-color="{{accentColor}}" style="height: 760px;">
+      <div class="flex flex-col gap-[60px] w-full">
+        <!-- Answer block -->
+        <div id="testimonialText"
+          class="self-stretch text-white leading-normal h-[420px] overflow-hidden font-normal tracking-[-0.7px]">
+          <span class="block w-full h-full !font-['Geist'] tracking-[-0.7px] leading-[150%]" style="
+                line-height: 160%;
+                letter-spacing: 0.7px;    
+                font-weight: 200;
+                ">
+            {{answer}}
+          </span>
+        </div>
+
+        <!-- Author -->
+        <div class="flex items-center gap-8 w-[743px]">
+          <img src="{{author.image}}" alt="Author"
+            class="w-[120px] h-[120px] rounded-full object-cover border border-white"
+            data-border-color="{{accentColor}}" />
+          <div class="flex flex-col gap-[2.93px]">
+            <p class="text-white text-[48px] font-bold leading-[1.4] tracking-[-0.48px] font-['Inter']">
+              {{author.name}}
+            </p>
+            <p class="text-white text-[28px] font-extralight italic font-['Inter']" style="
+                line-height: 160%;
+                letter-spacing: 1px;    
+                font-weight: 200;
+                ">
+              {{author.designation}}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function hexToRgba(hex, alpha = 1) {
+      const bigint = parseInt(hex.replace("#", ""), 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function lightenColor(hex, percent) {
+      const num = parseInt(hex.replace("#", ""), 16);
+      let r = (num >> 16) + Math.round(255 * percent);
+      let g = ((num >> 8) & 0x00FF) + Math.round(255 * percent);
+      let b = (num & 0x0000FF) + Math.round(255 * percent);
+
+      r = Math.min(255, r);
+      g = Math.min(255, g);
+      b = Math.min(255, b);
+
+      return `rgba(${r}, ${g}, ${b}, 1)`;
+    }
+
+    function darkenColor(hex, percent) {
+      const num = parseInt(hex.replace("#", ""), 16);
+      let r = (num >> 16) - Math.round(255 * percent);
+      let g = ((num >> 8) & 0x00FF) - Math.round(255 * percent);
+      let b = (num & 0x0000FF) - Math.round(255 * percent);
+      return `rgba(${r}, ${g}, ${b}, 1)`;
+    }
+
+    window.onload = () => {
+      textFit(document.getElementById('questionText'), {
+        alignVert: true,
+        multiLine: true,
+        maxFontSize: 40,
+        minFontSize: 10,
+      });
+
+      textFit(document.getElementById('testimonialText'), {
+        alignVert: true,
+        multiLine: true,
+        maxFontSize: 40,
+        minFontSize: 10,
+      });
+
+      const container = document.getElementById("testimonialContainer");
+      const accentColor = container.dataset.accentColor;
+      const lighterAccent = lightenColor(accentColor, 0.5);
+      const darkerAccent = darkenColor(accentColor, 0.5);
+
+      container.style.background = `
+      linear-gradient(to bottom left, ${lighterAccent}, ${accentColor}, ${darkerAccent}),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 1080 1080' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise-filter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.74' numOctaves='4' stitchTiles='stitch'%3E%3C/feTurbulence%3E%3CfeColorMatrix type='saturate' values='0'%3E%3C/feColorMatrix%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.34'%3E%3C/feFuncR%3E%3CfeFuncG type='linear' slope='0.34'%3E%3C/feFuncG%3E%3CfeFuncB type='linear' slope='0.34'%3E%3C/feFuncB%3E%3CfeFuncA type='linear' slope='0.57'%3E%3C/feFuncA%3E%3C/feComponentTransfer%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='1.68' intercept='-0.34'/%3E%3CfeFuncG type='linear' slope='1.68' intercept='-0.34'/%3E%3CfeFuncB type='linear' slope='1.68' intercept='-0.34'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise-filter)'%3E%3C/rect%3E%3C/svg%3E")
+    `;
+      container.style.backgroundBlendMode = "multiply";
+      container.style.filter = "contrast(100%) brightness(100%)";
+
+      // Set border color for author image
+      const authorImage = document.querySelector('img[data-border-color]');
+      if (authorImage) {
+        authorImage.style.borderColor = `${accentColor}66`;
+      }
+    };
+  </script>
+
+</body>
+
+</html>
