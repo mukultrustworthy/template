@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import HtmlEditor from "@/components/HtmlEditor";
@@ -14,11 +15,18 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
-  DEFAULT_HTML,
-  DEFAULT_JSON,
-} from "@/components/templates/default-testimonial";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -49,26 +57,108 @@ const formSchema = z.object({
   jsonData: z.record(z.unknown()),
 });
 
-export default function Editor() {
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+export default function EditTemplate() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const templateId = searchParams.get("id");
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [customTagInput, setCustomTagInput] = useState<string>("");
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "New Template",
-      type: "testimonial",
+      name: "",
+      type: "",
       tags: [],
-      html: DEFAULT_HTML,
-      jsonData: DEFAULT_JSON,
+      html: "",
+      jsonData: {},
     },
   });
 
   // Get current values from form
   const { tags, html, jsonData } = form.watch();
+
+  // Fetch template data
+  useEffect(() => {
+    if (!templateId) {
+      toast.error("Template ID is required");
+      router.push("/dashboard/templates");
+      return;
+    }
+
+    const fetchTemplate = async () => {
+      try {
+        console.log("Fetching template with ID:", templateId);
+        const response = await fetch(`/api/templates/${templateId}`);
+        
+        if (!response.ok) {
+          console.error("API response not OK:", response.status, response.statusText);
+          throw new Error(`Failed to fetch template: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("API response data:", data);
+        
+        const template = data.template;
+        
+        if (!template) {
+          console.error("Template data is missing in API response:", data);
+          throw new Error("Template data is missing");
+        }
+
+        console.log("Fetched template:", template);
+        
+        // Get HTML content
+        let htmlContent = "";
+        
+        // If htmlRef appears to be a filename instead of raw HTML, try to fetch it from htmlUrl
+        if (template.htmlUrl) {
+          console.log("Fetching HTML from URL:", template.htmlUrl);
+          try {
+            const htmlResponse = await fetch(template.htmlUrl);
+            if (htmlResponse.ok) {
+              htmlContent = await htmlResponse.text();
+              console.log("HTML content fetched successfully", htmlContent.substring(0, 100) + "...");
+            } else {
+              console.warn("HTML fetch failed, using htmlRef instead:", template.htmlRef);
+              htmlContent = template.htmlRef;
+            }
+          } catch (htmlError) {
+            console.error("Error fetching HTML content:", htmlError);
+            htmlContent = template.htmlRef;
+          }
+        } else {
+          console.log("Using htmlRef directly as content:", template.htmlRef);
+          htmlContent = template.htmlRef;
+        }
+        
+        // Update form with template data - ensure all fields are populated correctly
+        const formData = {
+          name: template.name || "",
+          type: template.type || "",
+          tags: template.tags || [],
+          html: htmlContent || "",
+          jsonData: template.jsonData || {},
+        };
+        
+        console.log("Updating form with data:", formData);
+        form.reset(formData);
+      } catch (error) {
+        console.error("Error fetching template:", error);
+        toast.error("Failed to load template");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTemplate();
+  }, [templateId, form, router]);
 
   const handleAddTag = () => {
     if (customTagInput.trim()) {
@@ -85,44 +175,73 @@ export default function Editor() {
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsPublishing(true);
+    if (!templateId) return;
+    
+    setIsSaving(true);
+    console.log("Submitting form values:", values);
 
     try {
-      const response = await fetch("/api/templates", {
-        method: "POST",
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           template: {
-            htmlRef: values.html,
+            htmlRef: values.html, // This sends the HTML content directly
             type: values.type,
             tags: values.tags,
             name: values.name,
             jsonData: values.jsonData,
-            version: 1,
-            isLatest: true,
-            parentId: null,
-            childIds: [],
-            publishedAt: null,
-            placeholders: [],
-            collectionId: null,
           },
         }),
       });
 
+      console.log("Update response status:", response.status, response.statusText);
       const result = await response.json();
+      console.log("Update response data:", result);
 
       if (response.ok) {
-        toast.success("Template published to library successfully!");
+        toast.success("Template updated successfully!");
+        // Give a slight delay before redirecting to allow the success toast to be seen
+        setTimeout(() => {
+          router.push("/dashboard/templates");
+        }, 1500);
       } else {
-        toast.error(`Failed to publish: ${result.error || "Unknown error"}`);
+        toast.error(`Failed to update: ${result.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error("Error publishing template:", error);
-      toast.error("Failed to publish template");
+      console.error("Error updating template:", error);
+      toast.error("Failed to update template");
     } finally {
-      setIsPublishing(false);
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateId) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Template deleted successfully");
+        // Redirect to templates list
+        setTimeout(() => {
+          router.push("/dashboard/templates");
+        }, 1500);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      toast.error(`Failed to delete template: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -188,12 +307,26 @@ export default function Editor() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-4 flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Loading template...</div>
+      </div>
+    );
+  }
+
   return (
     <main className="p-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Template Editor</h1>
+        <h1 className="text-3xl font-bold">Edit Template</h1>
         <div className="flex gap-2">
-          <Button 
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/templates")}
+          >
+            Cancel
+          </Button>
+          <Button
             variant="secondary"
             onClick={handleDownloadImage}
             disabled={isDownloading}
@@ -210,12 +343,39 @@ export default function Editor() {
               </span>
             )}
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this template? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteTemplate}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button
             onClick={form.handleSubmit(onSubmit)}
             size="lg"
-            disabled={isPublishing}
+            disabled={isSaving}
           >
-            {isPublishing ? "Publishing..." : "Publish"}
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>

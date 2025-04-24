@@ -1,7 +1,5 @@
 import dbConnect from "@/lib/mongodb";
 import { Template } from "@/models";
-import { IDesign } from "@/types/models";
-import { Document, Types } from "mongoose";
 import mongoose from "mongoose";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -19,6 +17,7 @@ export interface TemplateRequest {
   collectionId?: string | null;
   parentId?: string | null;
   childIds?: string[];
+  htmlUrl?: string;
 }
 
 export interface TemplateRecord {
@@ -37,17 +36,7 @@ export interface TemplateRecord {
   childIds?: string[];
   _id: string;
   htmlUrl: string;
-}
-
-interface TemplateWithDesign extends Document {
-  _id: Types.ObjectId;
-  type: string;
-  tags: string[];
-  designId: IDesign;
-  placeholders: unknown[];
-  jsonData: Record<string, unknown>;
-  createdAt: Date;
-  updatedAt: Date;
+  templateId?: string;
 }
 
 const R2 = new S3Client({
@@ -187,33 +176,151 @@ export async function getTemplateById(
 ): Promise<TemplateRecord | null> {
   await dbConnect();
 
-  const template = (await Template.findById(id)
-    .populate("designId")
-    .lean()) as unknown as TemplateWithDesign | null;
+  const template = await Template.findById(id).lean();
 
   if (!template) return null;
 
-  const design = template.designId;
-
   return {
     _id: template._id.toString(),
-    htmlRef: design?.htmlRef || "",
-    templateId: template._id.toString(),
+    htmlRef: template.htmlRef || "",
     type: template.type,
-    version: design?.version || 1,
-    isLatest: design?.isLatest || true,
-    publishedAt: design?.publishedAt
-      ? design.publishedAt instanceof Date
-        ? design.publishedAt
-        : new Date(design.publishedAt)
-      : new Date(),
-    createdBy: design?.createdBy || "unknown",
-    updatedAt: template.updatedAt.toISOString(),
-    tags: template.tags,
+    version: template.version || 1,
+    isLatest: template.isLatest || true,
+    publishedAt: template.publishedAt || null,
+    createdBy: template.createdBy || "unknown",
+    tags: template.tags || [],
     placeholders: template.placeholders || [],
     jsonData: template.jsonData || {},
-    htmlUrl: design?.htmlRef
-      ? `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${design.htmlRef}`
+    htmlUrl: template.htmlRef
+      ? `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${template.htmlRef}`
       : "",
-  } as TemplateRecord;
+    name: template.name,
+    parentId: template.parentId ? template.parentId.toString() : null,
+    childIds: (template.childIds || []).map(id => id.toString()),
+    collectionId: template.collectionId ? template.collectionId.toString() : null,
+    templateId: template._id.toString(),
+  };
+}
+
+export async function updateTemplate(
+  id: string,
+  templateData: Partial<TemplateRequest>
+): Promise<TemplateRecord | null> {
+  await dbConnect();
+  console.log("updateTemplate called with ID:", id);
+  console.log("templateData:", JSON.stringify({
+    ...templateData,
+    htmlRef: templateData.htmlRef ? `${templateData.htmlRef.substring(0, 50)}...` : undefined
+  }));
+
+  try {
+    // Get the current template first
+    const currentTemplate = await Template.findById(id);
+    
+    if (!currentTemplate) {
+      console.error("Template not found with ID:", id);
+      return null;
+    }
+
+    console.log("Found existing template:", {
+      _id: currentTemplate._id.toString(),
+      name: currentTemplate.name,
+      type: currentTemplate.type
+    });
+
+    // Create update data object
+    const updateData: Record<string, unknown> = { ...templateData };
+    
+    // Check if HTML content is being updated
+    if (templateData.htmlRef && (
+      !currentTemplate.htmlRef || 
+      templateData.htmlRef.length > 100 || // If htmlRef is long, it's probably HTML content
+      templateData.htmlRef.includes('<') // If it contains HTML tags
+    )) {
+      console.log("HTML content is being updated");
+      // Upload the new HTML to R2
+      const version = currentTemplate.version || 1;
+      const filename = `${id}_v${version}.html`;
+      console.log("Uploading HTML content to R2 with filename:", filename);
+      
+      try {
+        const htmlUrl = await uploadToR2(templateData.htmlRef, filename);
+        console.log("HTML uploaded successfully, URL:", htmlUrl);
+        
+        // Update the htmlRef to be the filename, not the content
+        updateData.htmlRef = filename;
+        // We could also store the URL directly if the schema supports it
+        updateData.htmlUrl = htmlUrl;
+      } catch (uploadError) {
+        console.error("Error uploading HTML to R2:", uploadError);
+        // Let the error propagate
+        throw uploadError;
+      }
+    } else {
+      console.log("HTML content not changed or is just a reference");
+    }
+
+    console.log("Final update data:", updateData);
+
+    // Update the template in the database
+    const updatedTemplate = await Template.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    ).lean();
+
+    if (!updatedTemplate) {
+      console.error("Update operation returned null");
+      return null;
+    }
+
+    console.log("Template updated successfully:", {
+      _id: updatedTemplate._id.toString(),
+      name: updatedTemplate.name
+    });
+
+    // Convert to TemplateRecord format
+    return {
+      _id: updatedTemplate._id.toString(),
+      htmlRef: updatedTemplate.htmlRef || "",
+      type: updatedTemplate.type,
+      version: updatedTemplate.version || 1,
+      isLatest: updatedTemplate.isLatest || true,
+      publishedAt: updatedTemplate.publishedAt || null,
+      createdBy: updatedTemplate.createdBy || "unknown",
+      tags: updatedTemplate.tags || [],
+      placeholders: updatedTemplate.placeholders || [],
+      jsonData: updatedTemplate.jsonData || {},
+      htmlUrl: `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${updatedTemplate.htmlRef || ""}`,
+      name: updatedTemplate.name,
+      parentId: updatedTemplate.parentId ? updatedTemplate.parentId.toString() : null,
+      childIds: (updatedTemplate.childIds || []).map(id => id.toString()),
+      collectionId: updatedTemplate.collectionId ? updatedTemplate.collectionId.toString() : null,
+      templateId: updatedTemplate._id.toString(),
+    };
+  } catch (error) {
+    console.error("Error updating template:", error);
+    throw error;
+  }
+}
+
+export async function deleteTemplate(id: string): Promise<boolean> {
+  await dbConnect();
+  console.log("Deleting template with ID:", id);
+
+  try {
+    // Delete the template from the database
+    const result = await Template.findByIdAndDelete(id);
+    
+    if (!result) {
+      console.error("Template not found for deletion:", id);
+      return false;
+    }
+    
+    console.log("Template deleted successfully:", id);
+    return true;
+  } catch (error) {
+    console.error("Error deleting template:", error);
+    throw error;
+  }
 }
