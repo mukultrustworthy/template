@@ -1,34 +1,30 @@
-import { NextResponse } from 'next/server';
-import { getTemplatesByType } from '../../../services/templateService';
+import { NextResponse } from "next/server";
+import { getTemplatesByType } from "../../../services/templateService";
 
-interface RouteParams {
-  params: {
-    type: string;
-  };
-}
-
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ type: string }> }
+) {
   try {
-    const { type } = params;
-    
+    const { type } = await params;
+
     if (!type) {
       return NextResponse.json(
-        { error: 'Template type is required' },
+        { error: "Template type is required" },
         { status: 400 }
       );
     }
-    
+
     const templates = await getTemplatesByType(type);
 
     console.log(templates);
-    
+
     return NextResponse.json({ templates });
-    
   } catch (error) {
-    console.error('Error fetching templates by type:', error);
+    console.error("Error fetching templates by type:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch templates' },
+      { error: "Failed to fetch templates" },
       { status: 500 }
     );
   }
-} 
+}
