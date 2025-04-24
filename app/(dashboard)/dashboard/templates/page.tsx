@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Trash2, Download } from "lucide-react";
+import { Search, Trash2, Download, EyeOff } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { TemplateRecord } from "@/app/api/services/templateService";
@@ -108,8 +108,13 @@ const TemplateCard = ({ template, templateHtmlContent, onDelete }: TemplateCardP
       <CardHeader className="">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg line-clamp-1">
+            <CardTitle className="text-lg line-clamp-1 flex items-center gap-1">
               {template.name}
+              {template.isVisible === false && (
+                <span className="text-muted-foreground" title="Template is hidden">
+                  <EyeOff size={16} />
+                </span>
+              )}
             </CardTitle>
             <Badge variant="secondary" className="text-xs">
               {template.type}
@@ -217,6 +222,7 @@ const TemplateCard = ({ template, templateHtmlContent, onDelete }: TemplateCardP
 export default function Templates() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTag, setFilterTag] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
@@ -310,8 +316,10 @@ export default function Templates() {
       template.createdBy?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesTag = filterTag === "" || template.tags?.includes(filterTag);
+    
+    const matchesVisibility = showHidden || template.isVisible !== false;
 
-    return matchesSearch && matchesTag;
+    return matchesSearch && matchesTag && matchesVisibility;
   });
 
   const handleDeleteTemplate = async (templateId: string) => {
@@ -367,7 +375,7 @@ export default function Templates() {
                 />
               </div>
             </div>
-
+            
             <div className="w-full md:w-64">
               <Label htmlFor="tag-filter" className="sr-only">
                 Filter by Tag
@@ -385,6 +393,19 @@ export default function Templates() {
                   </option>
                 ))}
               </select>
+            </div>
+            
+            <div className="flex gap-2 items-center">
+              <Label htmlFor="showHidden" className="cursor-pointer flex items-center gap-2">
+                <input
+                  id="showHidden"
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={showHidden}
+                  onChange={(e) => setShowHidden(e.target.checked)}
+                />
+                Show hidden templates
+              </Label>
             </div>
           </div>
         </CardContent>

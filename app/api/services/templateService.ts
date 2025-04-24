@@ -18,6 +18,7 @@ export interface TemplateRequest {
   parentId?: string | null;
   childIds?: string[];
   htmlUrl?: string;
+  isVisible?: boolean;
 }
 
 export interface TemplateRecord {
@@ -37,6 +38,7 @@ export interface TemplateRecord {
   _id: string;
   htmlUrl: string;
   templateId?: string;
+  isVisible?: boolean;
 }
 
 const R2 = new S3Client({
@@ -112,6 +114,7 @@ export async function createTemplate(
       createdBy: template.createdBy || "current-user@example.com",
       htmlRef: "placeholder", // We'll update this later
       htmlUrl: "",
+      isVisible: template.isVisible || true,
     };
 
     await templateCollection.insertOne(templateDoc, { session });
@@ -165,8 +168,13 @@ export async function getTemplatesByType(
 ) {
   await dbConnect();
 
-  const templates = (await Template.find({ type })
-    .lean());
+  const templates = (await Template.find({ 
+    type,
+    $or: [
+      { isVisible: true },
+      { isVisible: { $exists: false } }
+    ] 
+  }).lean());
 
   return templates;
 }
@@ -199,6 +207,7 @@ export async function getTemplateById(
     childIds: (template.childIds || []).map(id => id.toString()),
     collectionId: template.collectionId ? template.collectionId.toString() : null,
     templateId: template._id.toString(),
+    isVisible: template.isVisible || true,
   };
 }
 
@@ -297,6 +306,7 @@ export async function updateTemplate(
       childIds: (updatedTemplate.childIds || []).map(id => id.toString()),
       collectionId: updatedTemplate.collectionId ? updatedTemplate.collectionId.toString() : null,
       templateId: updatedTemplate._id.toString(),
+      isVisible: updatedTemplate.isVisible || true,
     };
   } catch (error) {
     console.error("Error updating template:", error);

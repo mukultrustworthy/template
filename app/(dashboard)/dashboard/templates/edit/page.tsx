@@ -43,10 +43,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler, Control } from "react-hook-form";
 import * as z from "zod";
 import { TEMPLATE_TYPES } from "@/lib/constants";
-import { Download } from "lucide-react";
+import { Download, Eye, EyeOff } from "lucide-react";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -55,7 +55,13 @@ const formSchema = z.object({
   tags: z.array(z.string()),
   html: z.string(),
   jsonData: z.record(z.unknown()),
+  isVisible: z.boolean(),
 });
+
+type FormValues = z.infer<typeof formSchema>;
+
+// Create a type-safe control component
+type FormControlType = Control<FormValues>;
 
 function EditTemplateContent() {
   const router = useRouter();
@@ -70,7 +76,7 @@ function EditTemplateContent() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Initialize form with react-hook-form and zod validation
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -78,11 +84,16 @@ function EditTemplateContent() {
       tags: [],
       html: "",
       jsonData: {},
+      isVisible: true,
     },
   });
 
   // Get current values from form
-  const { tags, html, jsonData } = form.watch();
+  const { tags, html, jsonData, isVisible } = form.watch();
+
+  // Fix for FormField control prop
+  const { control } = form;
+  const typedControl = control as FormControlType;
 
   // Fetch template data
   useEffect(() => {
@@ -145,6 +156,7 @@ function EditTemplateContent() {
           tags: template.tags || [],
           html: htmlContent || "",
           jsonData: template.jsonData || {},
+          isVisible: template.isVisible !== undefined ? template.isVisible : true,
         };
         
         console.log("Updating form with data:", formData);
@@ -174,34 +186,36 @@ function EditTemplateContent() {
     form.setValue("tags", updatedTags, { shouldValidate: true });
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit: SubmitHandler<FormValues> = (values) => {
     if (!templateId) return;
     
     setIsSaving(true);
     console.log("Submitting form values:", values);
 
-    try {
-      const response = await fetch(`/api/templates/${templateId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+    fetch(`/api/templates/${templateId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        template: {
+          htmlRef: values.html, // This sends the HTML content directly
+          type: values.type,
+          tags: values.tags,
+          name: values.name,
+          jsonData: values.jsonData,
+          isVisible: values.isVisible,
         },
-        body: JSON.stringify({
-          template: {
-            htmlRef: values.html, // This sends the HTML content directly
-            type: values.type,
-            tags: values.tags,
-            name: values.name,
-            jsonData: values.jsonData,
-          },
-        }),
-      });
-
+      }),
+    })
+    .then(response => {
       console.log("Update response status:", response.status, response.statusText);
-      const result = await response.json();
+      return response.json();
+    })
+    .then(result => {
       console.log("Update response data:", result);
 
-      if (response.ok) {
+      if (result.template) {
         toast.success("Template updated successfully!");
         // Give a slight delay before redirecting to allow the success toast to be seen
         setTimeout(() => {
@@ -210,12 +224,14 @@ function EditTemplateContent() {
       } else {
         toast.error(`Failed to update: ${result.error || "Unknown error"}`);
       }
-    } catch (error) {
+    })
+    .catch(error => {
       console.error("Error updating template:", error);
       toast.error("Failed to update template");
-    } finally {
+    })
+    .finally(() => {
       setIsSaving(false);
-    }
+    });
   };
 
   const handleDeleteTemplate = async () => {
@@ -307,6 +323,40 @@ function EditTemplateContent() {
     }
   };
 
+  // Add a function to toggle template visibility
+  const toggleVisibility = async () => {
+    if (!templateId) return;
+    
+    try {
+      const response = await fetch(`/api/templates/${templateId}/visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isVisible: !isVisible
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Visibility update response:", result);
+        
+        // Update form state
+        form.setValue("isVisible", !isVisible);
+        
+        // Show success message
+        toast.success(`Template ${!isVisible ? 'shown' : 'hidden'} successfully`);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update visibility");
+      }
+    } catch (error) {
+      console.error("Error toggling template visibility:", error);
+      toast.error("Failed to update template visibility");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 flex items-center justify-center min-h-screen">
@@ -325,6 +375,16 @@ function EditTemplateContent() {
             onClick={() => router.push("/dashboard/templates")}
           >
             Cancel
+          </Button>
+          <Button
+            variant={isVisible ? "default" : "secondary"}
+            onClick={toggleVisibility}
+          >
+            {isVisible ? (
+              <span className="flex items-center gap-1"><Eye size={16} /> Hide Template</span>
+            ) : (
+              <span className="flex items-center gap-1"><EyeOff size={16} /> Show Template</span>
+            )}
           </Button>
           <Button
             variant="secondary"
@@ -381,7 +441,7 @@ function EditTemplateContent() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-5 p-6 border border-gray-200 rounded-md bg-gray-50">
@@ -389,7 +449,7 @@ function EditTemplateContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={typedControl}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -403,7 +463,7 @@ function EditTemplateContent() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={typedControl}
                     name="type"
                     render={({ field }) => (
                       <FormItem>
@@ -432,7 +492,7 @@ function EditTemplateContent() {
                 </div>
 
                 <FormField
-                  control={form.control}
+                  control={typedControl}
                   name="tags"
                   render={() => (
                     <FormItem>
@@ -516,7 +576,7 @@ function EditTemplateContent() {
               </div>
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="html"
                 render={() => (
                   <FormItem className="space-y-0">
@@ -532,7 +592,7 @@ function EditTemplateContent() {
               />
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="jsonData"
                 render={() => (
                   <FormItem className="space-y-0">

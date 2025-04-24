@@ -68,6 +68,11 @@ export async function PATCH(
       );
     }
 
+    // Log visibility status if it's included in the update
+    if (template.isVisible !== undefined) {
+      console.log(`Updating template visibility to: ${template.isVisible}`);
+    }
+
     // Update the template
     const updatedTemplate = await updateTemplate(templateId, template);
 
