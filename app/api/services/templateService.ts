@@ -159,22 +159,18 @@ export async function createTemplate(
 
 export async function getAllTemplates() {
   await dbConnect();
+  // @ts-expect-error - Mongoose typing issue
   const templates = await Template.find().lean();
   return templates;
 }
 
-export async function getTemplatesByType(
-  type: string
-) {
+export async function getTemplatesByType(type: string) {
   await dbConnect();
-
-  const templates = (await Template.find({ 
+  // @ts-expect-error - Mongoose typing issue
+  const templates = await Template.find({
     type,
-    $or: [
-      { isVisible: true },
-      { isVisible: { $exists: false } }
-    ] 
-  }).lean());
+    $or: [{ isVisible: true }, { isVisible: { $exists: false } }],
+  }).lean();
 
   return templates;
 }
@@ -183,7 +179,7 @@ export async function getTemplateById(
   id: string
 ): Promise<TemplateRecord | null> {
   await dbConnect();
-
+  // @ts-expect-error - Mongoose typing issue
   const template = await Template.findById(id).lean();
 
   if (!template) return null;
@@ -204,8 +200,10 @@ export async function getTemplateById(
       : "",
     name: template.name,
     parentId: template.parentId ? template.parentId.toString() : null,
-    childIds: (template.childIds || []).map(id => id.toString()),
-    collectionId: template.collectionId ? template.collectionId.toString() : null,
+    childIds: (template.childIds || []).map((id: string) => id.toString()),
+    collectionId: template.collectionId
+      ? template.collectionId.toString()
+      : null,
     templateId: template._id.toString(),
     isVisible: template.isVisible || true,
   };
@@ -217,15 +215,21 @@ export async function updateTemplate(
 ): Promise<TemplateRecord | null> {
   await dbConnect();
   console.log("updateTemplate called with ID:", id);
-  console.log("templateData:", JSON.stringify({
-    ...templateData,
-    htmlRef: templateData.htmlRef ? `${templateData.htmlRef.substring(0, 50)}...` : undefined
-  }));
+  console.log(
+    "templateData:",
+    JSON.stringify({
+      ...templateData,
+      htmlRef: templateData.htmlRef
+        ? `${templateData.htmlRef.substring(0, 50)}...`
+        : undefined,
+    })
+  );
 
   try {
     // Get the current template first
+    // @ts-expect-error - Mongoose typing issue
     const currentTemplate = await Template.findById(id);
-    
+
     if (!currentTemplate) {
       console.error("Template not found with ID:", id);
       return null;
@@ -234,28 +238,29 @@ export async function updateTemplate(
     console.log("Found existing template:", {
       _id: currentTemplate._id.toString(),
       name: currentTemplate.name,
-      type: currentTemplate.type
+      type: currentTemplate.type,
     });
 
     // Create update data object
     const updateData: Record<string, unknown> = { ...templateData };
-    
+
     // Check if HTML content is being updated
-    if (templateData.htmlRef && (
-      !currentTemplate.htmlRef || 
-      templateData.htmlRef.length > 100 || // If htmlRef is long, it's probably HTML content
-      templateData.htmlRef.includes('<') // If it contains HTML tags
-    )) {
+    if (
+      templateData.htmlRef &&
+      (!currentTemplate.htmlRef ||
+        templateData.htmlRef.length > 100 || // If htmlRef is long, it's probably HTML content
+        templateData.htmlRef.includes("<")) // If it contains HTML tags
+    ) {
       console.log("HTML content is being updated");
       // Upload the new HTML to R2
       const version = currentTemplate.version || 1;
       const filename = `${id}_v${version}.html`;
       console.log("Uploading HTML content to R2 with filename:", filename);
-      
+
       try {
         const htmlUrl = await uploadToR2(templateData.htmlRef, filename);
         console.log("HTML uploaded successfully, URL:", htmlUrl);
-        
+
         // Update the htmlRef to be the filename, not the content
         updateData.htmlRef = filename;
         // We could also store the URL directly if the schema supports it
@@ -272,6 +277,7 @@ export async function updateTemplate(
     console.log("Final update data:", updateData);
 
     // Update the template in the database
+    // @ts-expect-error - Mongoose typing issue
     const updatedTemplate = await Template.findByIdAndUpdate(
       id,
       { $set: updateData },
@@ -285,7 +291,7 @@ export async function updateTemplate(
 
     console.log("Template updated successfully:", {
       _id: updatedTemplate._id.toString(),
-      name: updatedTemplate.name
+      name: updatedTemplate.name,
     });
 
     // Convert to TemplateRecord format
@@ -300,11 +306,19 @@ export async function updateTemplate(
       tags: updatedTemplate.tags || [],
       placeholders: updatedTemplate.placeholders || [],
       jsonData: updatedTemplate.jsonData || {},
-      htmlUrl: `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${updatedTemplate.htmlRef || ""}`,
+      htmlUrl: `${process.env.CLOUDFLARE_R2_ASSETS_URL}/html/${
+        updatedTemplate.htmlRef || ""
+      }`,
       name: updatedTemplate.name,
-      parentId: updatedTemplate.parentId ? updatedTemplate.parentId.toString() : null,
-      childIds: (updatedTemplate.childIds || []).map(id => id.toString()),
-      collectionId: updatedTemplate.collectionId ? updatedTemplate.collectionId.toString() : null,
+      parentId: updatedTemplate.parentId
+        ? updatedTemplate.parentId.toString()
+        : null,
+      childIds: (updatedTemplate.childIds || []).map((id: string) =>
+        id.toString()
+      ),
+      collectionId: updatedTemplate.collectionId
+        ? updatedTemplate.collectionId.toString()
+        : null,
       templateId: updatedTemplate._id.toString(),
       isVisible: updatedTemplate.isVisible || true,
     };
@@ -320,13 +334,14 @@ export async function deleteTemplate(id: string): Promise<boolean> {
 
   try {
     // Delete the template from the database
+    // @ts-expect-error - Mongoose typing issue
     const result = await Template.findByIdAndDelete(id);
-    
+
     if (!result) {
       console.error("Template not found for deletion:", id);
       return false;
     }
-    
+
     console.log("Template deleted successfully:", id);
     return true;
   } catch (error) {

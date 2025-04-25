@@ -32,7 +32,8 @@ const CollectionSchema = new Schema(
 );
 
 const Collection =
-  (mongoose.models.Collection as mongoose.Model<ICollection>) ||
-  mongoose.model<ICollection>("Collection", CollectionSchema);
+  mongoose.models && "Collection" in mongoose.models
+    ? mongoose.models.Collection
+    : mongoose.model<ICollection>("Collection", CollectionSchema);
 
 export default Collection;
