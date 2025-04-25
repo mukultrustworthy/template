@@ -70,129 +70,80 @@ type Slide =
 
 const cleanHtml = (html: string) => html.replace(/<[^>]+>/g, "").trim();
 
-// Function to count words in a JSON structure
-const countWordsInJson = (
-  json: Record<string, unknown>
-): Record<string, number> => {
-  const wordCounts: Record<string, number> = {};
+// Simplified word count function - only counts key fields needed for prompting
+const getSimplifiedWordCounts = (jsonData: Record<string, unknown>): string => {
+  const counts: string[] = [];
 
-  const countWordsInValue = (value: unknown): number => {
+  const processValue = (value: unknown, path: string) => {
     if (typeof value === "string") {
-      return value.trim().split(/\s+/).filter(Boolean).length;
-    }
-    return 0;
-  };
-
-  const processObject = (obj: Record<string, unknown>, prefix = ""): void => {
-    for (const [key, value] of Object.entries(obj)) {
-      const currentPath = prefix ? `${prefix}.${key}` : key;
-
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        processObject(value as Record<string, unknown>, currentPath);
-      } else if (Array.isArray(value)) {
-        value.forEach((item, index) => {
-          if (typeof item === "object" && item !== null) {
-            processObject(
-              item as Record<string, unknown>,
-              `${currentPath}[${index}]`
-            );
-          } else {
-            const wordCount = countWordsInValue(item);
-            if (wordCount > 0) {
-              wordCounts[`${currentPath}[${index}]`] = wordCount;
-            }
-          }
-        });
-      } else {
-        const wordCount = countWordsInValue(value);
-        if (wordCount > 0) {
-          wordCounts[currentPath] = wordCount;
-        }
-      }
+      const wordCount = value.trim().split(/\s+/).filter(Boolean).length;
+      if (wordCount > 0) counts.push(`"${path}": ${wordCount} words`);
+    } else if (Array.isArray(value)) {
+      value.forEach((item, idx) => {
+        processValue(item, `${path}[${idx}]`);
+      });
+    } else if (typeof value === "object" && value !== null) {
+      Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
+        processValue(val, path ? `${path}.${key}` : key);
+      });
     }
   };
 
-  processObject(json);
-  return wordCounts;
+  processValue(jsonData, "");
+  return counts.join("\n");
 };
 
 const generateJsonDataFromSlide = async (
   slide: Slide,
   template: ITemplate
 ): Promise<Record<string, unknown>> => {
-  // Count words in the template JSON structure
-  const wordCounts = countWordsInJson(template.jsonData);
+  // Get simplified word counts - faster than the full analysis
+  const wordCountsText = getSimplifiedWordCounts(template.jsonData);
 
-  let basePrompt = `You are a JSON generator. Create data that matches this structure:\n\n${JSON.stringify(
-    template.jsonData,
-    null,
-    2
-  )}\n\nWord counts for each field in the template:\n${Object.entries(
-    wordCounts
-  )
-    .map(([path, count]) => `"${path}": ${count} words`)
-    .join(
-      "\n"
-    )}\n\nEnsure your generated content should not exceed the word count for each field. Use short sentences and simple language. Use short words.`;
+  let promptContent = "";
 
   switch (slide.category) {
     case "problem":
       const problemSlide = slide as ProblemSlide;
-      basePrompt += `\n\nSlide Title: ${cleanHtml(
+      promptContent = `Title: ${cleanHtml(
         problemSlide.problemTitle
       )}\nProblems:\n${problemSlide.problemPageFields
-        .map(
-          (p: PageField, i: number) =>
-            `${i + 1}. ${cleanHtml(p.title)} - ${p.description}`
-        )
+        .map((p, i) => `${i + 1}. ${cleanHtml(p.title)} - ${p.description}`)
         .join("\n")}`;
       break;
     case "solution":
       const solutionSlide = slide as SolutionSlide;
-      basePrompt += `\n\nSolutions:\n${solutionSlide.solutionPageFields
-        .map(
-          (s: PageField, i: number) =>
-            `${i + 1}. ${cleanHtml(s.title)} - ${s.description}`
-        )
+      promptContent = `Solutions:\n${solutionSlide.solutionPageFields
+        .map((s, i) => `${i + 1}. ${cleanHtml(s.title)} - ${s.description}`)
         .join("\n")}`;
       break;
     case "results":
       const resultSlide = slide as ResultSlide;
-      basePrompt += `\n\nResults:\n${resultSlide.resultPageFields
-        .map(
-          (r: PageField, i: number) =>
-            `${i + 1}. ${cleanHtml(r.title)} - ${r.description}`
-        )
+      promptContent = `Results:\n${resultSlide.resultPageFields
+        .map((r, i) => `${i + 1}. ${cleanHtml(r.title)} - ${r.description}`)
         .join("\n")}`;
       break;
     case "about":
       const aboutSlide = slide as AboutSlide;
-      basePrompt += `\n\nAbout:\nTitle: ${cleanHtml(
+      promptContent = `About:\nTitle: ${cleanHtml(
         aboutSlide.aboutTitle
       )}\nSubtext: ${aboutSlide.aboutSubtext}`;
       break;
     case "cover":
       const coverSlide = slide as CoverSlide;
-      basePrompt += `\n\nCover Page Title: ${cleanHtml(
+      promptContent = `Cover Page Title: ${cleanHtml(
         coverSlide.coverPageTitle
       )}`;
       break;
     case "metrics":
       const metricsSlide = slide as MetricsSlide;
-      basePrompt += `\n\nMetrics:\n${metricsSlide.metricsPageFields
-        .map(
-          (m: PageField, i: number) =>
-            `${i + 1}. ${cleanHtml(m.title)} - ${m.description}`
-        )
+      promptContent = `Metrics:\n${metricsSlide.metricsPageFields
+        .map((m, i) => `${i + 1}. ${cleanHtml(m.title)} - ${m.description}`)
         .join("\n")}`;
       break;
     case "conclusion":
       const conclusionSlide = slide as ConclusionSlide;
-      basePrompt += `\n\nConclusion:\nTitle: ${cleanHtml(
+      promptContent = `Conclusion:\nTitle: ${cleanHtml(
         conclusionSlide.conclusionTitle
       )}\nSubtext: ${cleanHtml(conclusionSlide.conclusionSubtext)}`;
       break;
@@ -200,24 +151,30 @@ const generateJsonDataFromSlide = async (
       return {};
   }
 
-  const gptRes = await openai.chat.completions.create({
-    model: "gpt-4",
-    temperature: 0.6,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You generate JSON only. Strictly match the exact word count of each field in the template. This is critical - the word count for each field must be exactly the same as specified in the prompt.",
-      },
-      { role: "user", content: basePrompt },
-    ],
-  });
+  const basePrompt = `Generate JSON that matches this structure:\n${JSON.stringify(
+    template.jsonData,
+    null,
+    2
+  )}\n\nKey word counts:\n${wordCountsText}\n\nContent to use:\n${promptContent}\n\nEnsure your content respects the field word counts. Use simple language.`;
 
   try {
-    console.log("Base prompt", basePrompt);
+    // Use GPT-3.5-turbo instead of GPT-4 for faster responses
+    const gptRes = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.6,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return valid JSON only. Match the template structure exactly.",
+        },
+        { role: "user", content: basePrompt },
+      ],
+    });
+
     return JSON.parse(gptRes.choices[0].message.content || "{}");
   } catch (err) {
-    console.error("JSON Parse Error:", err);
+    console.error("JSON generation error:", err);
     return {};
   }
 };
@@ -233,9 +190,14 @@ export async function POST(request: NextRequest) {
 
     const { caseStudyId, collectionId } = await request.json();
 
-    const caseStudyRes = await fetch(
-      `https://staging.api.trustworthy.so/trustworthy/case-studies/slides/${caseStudyId}`
-    );
+    // Fetch case study and collection data in parallel
+    const [caseStudyRes, collection] = await Promise.all([
+      fetch(
+        `https://staging.api.trustworthy.so/trustworthy/case-studies/slides/${caseStudyId}`
+      ),
+      // @ts-expect-error - Mongoose typing issue
+      Collection.findById(collectionId).populate("templateIds"),
+    ]);
 
     if (!caseStudyRes.ok) {
       console.error("Failed to fetch case study", caseStudyRes);
@@ -246,24 +208,26 @@ export async function POST(request: NextRequest) {
     }
 
     const caseStudyJson = await caseStudyRes.json();
-
-    // Use type assertion to handle mongoose typing issues - cast to any to avoid TypeScript errors
-    // @ts-expect-error - Mongoose typing issue
-    const collection = await Collection.findById(collectionId);
-    if (collection) {
-      await collection.populate("templateIds");
-    }
     const templates = collection?.templateIds as ITemplate[];
 
-    const results: Record<string, Record<string, unknown>> = {};
-
-    for (const slide of caseStudyJson.slides) {
+    // Process all slides in parallel for major speed improvement
+    const slidePromises = caseStudyJson.slides.map(async (slide: Slide) => {
       const type = categoryToTypeMap[slide.category];
       const template = templates.find((t) => t.type === type);
-      if (!template) continue;
+
+      if (!template) return [type, null];
 
       const jsonData = await generateJsonDataFromSlide(slide, template);
-      results[type] = jsonData;
+      return [type, jsonData];
+    });
+
+    const slideResults = await Promise.all(slidePromises);
+
+    // Convert results array to object
+    const results: Record<string, Record<string, unknown>> = {};
+    for (const [type, data] of slideResults) {
+      if (type && data)
+        results[type as string] = data as Record<string, unknown>;
     }
 
     return NextResponse.json({
@@ -271,7 +235,7 @@ export async function POST(request: NextRequest) {
       generatedData: results,
     });
   } catch (error) {
-    console.error("Error in GET handler:", error);
+    console.error("Error in POST handler:", error);
     return NextResponse.json(
       { error: "An error occurred while processing the request" },
       { status: 500 }
