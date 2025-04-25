@@ -51,4 +51,32 @@ export const TEMPLATE_TYPES = [
     label: "Banner",
     value: "banner",
   },
+  {
+    label: "Cover",
+    value: "cover",
+  },
+  {
+    label: "Metrics",
+    value: "metrics",
+  },
+  {
+    label: "Problem",
+    value: "problem",
+  },
+  {
+    label: "Solution",
+    value: "solution",
+  },
+  {
+    label: "Results",
+    value: "results",
+  },
+  {
+    label: "Conclusion",
+    value: "conclusion",
+  },
+  {
+    label: "About",
+    value: "about",
+  },
 ];
