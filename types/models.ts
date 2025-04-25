@@ -7,6 +7,7 @@ export interface ITemplate extends Document {
   htmlRef: string;
   version: number;
   isLatest: boolean;
+  isVisible: boolean;
   publishedAt: Date | null;
   createdBy: string;
   placeholders: unknown[];

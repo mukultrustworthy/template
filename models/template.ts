@@ -27,6 +27,10 @@ const TemplateSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    isVisible: {
+      type: Boolean,
+      default: true,
+    },
     parentId: {
       type: Schema.Types.ObjectId,
       ref: "Template",

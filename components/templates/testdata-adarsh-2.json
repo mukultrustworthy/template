@@ -1,0 +1,21 @@
+{
+  "question": "What was the most valuable feature of our platform for your team?",
+  "companyLogo": "https://pub-283d55190c724937868ac6547276a459.r2.dev/guest/survey/email_logo.png",
+  "options": [
+    "Real-time collaboration",
+    "Automation workflows",
+    "Analytics dashboard",
+    "Integration capabidwadawliawdwaties",
+    "Integration capabidwadawliawdwaties"
+  ],
+  "selectedIndex": [
+    1,
+    2
+  ],
+  "author": {
+    "name": "Michael Rodriguez",
+    "designation": "VP of Operations, TechSolutions Inc.",
+    "image": "https://placehold.co/120x120/0f349d/white?text=MR"
+  },
+  "accentColor": "#8B5CF6"
+}

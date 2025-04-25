@@ -27,11 +27,19 @@ export default function TemplatePreview({ html, data }: TemplatePreviewProps) {
         if (value !== null && typeof value === 'object') {
           // Recursively process nested objects
           processObject(value as Record<string, unknown>, currentPath);
+          
+          // Also replace the entire object as JSON
+          const placeholder = `{{${currentPath}}}`;
+          const regex = new RegExp(placeholder, 'g');
+          
+          // For arrays and objects, insert the JSON directly without double-stringifying
+          processedHtml = processedHtml.replace(regex, JSON.stringify(value));
         } else {
           // Replace placeholders in the format {{key}} with their values
           const placeholder = `{{${currentPath}}}`;
           const regex = new RegExp(placeholder, 'g');
-          processedHtml = processedHtml.replace(regex, String(value));
+          const replacedValue = typeof value === 'string' ? value : JSON.stringify(value);
+          processedHtml = processedHtml.replace(regex, replacedValue);
         }
       });
     }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster, toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import HtmlEditor from "@/components/HtmlEditor";
@@ -14,11 +15,18 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
-  DEFAULT_HTML,
-  DEFAULT_JSON,
-} from "@/components/templates/default-testimonial";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -35,10 +43,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler, Control } from "react-hook-form";
 import * as z from "zod";
 import { TEMPLATE_TYPES } from "@/lib/constants";
-import { Download } from "lucide-react";
+import { Download, Eye, EyeOff } from "lucide-react";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -47,28 +55,122 @@ const formSchema = z.object({
   tags: z.array(z.string()),
   html: z.string(),
   jsonData: z.record(z.unknown()),
+  isVisible: z.boolean(),
 });
 
-export default function Editor() {
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+type FormValues = z.infer<typeof formSchema>;
+
+// Create a type-safe control component
+type FormControlType = Control<FormValues>;
+
+function EditTemplateContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const templateId = searchParams.get("id");
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [customTagInput, setCustomTagInput] = useState<string>("");
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Initialize form with react-hook-form and zod validation
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "New Template",
-      type: "testimonial",
+      name: "",
+      type: "",
       tags: [],
-      html: DEFAULT_HTML,
-      jsonData: DEFAULT_JSON,
+      html: "",
+      jsonData: {},
+      isVisible: true,
     },
   });
 
   // Get current values from form
-  const { tags, html, jsonData } = form.watch();
+  const { tags, html, jsonData, isVisible } = form.watch();
+
+  // Fix for FormField control prop
+  const { control } = form;
+  const typedControl = control as FormControlType;
+
+  // Fetch template data
+  useEffect(() => {
+    if (!templateId) {
+      toast.error("Template ID is required");
+      router.push("/dashboard/templates");
+      return;
+    }
+
+    const fetchTemplate = async () => {
+      try {
+        console.log("Fetching template with ID:", templateId);
+        const response = await fetch(`/api/templates/${templateId}`);
+        
+        if (!response.ok) {
+          console.error("API response not OK:", response.status, response.statusText);
+          throw new Error(`Failed to fetch template: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("API response data:", data);
+        
+        const template = data.template;
+        
+        if (!template) {
+          console.error("Template data is missing in API response:", data);
+          throw new Error("Template data is missing");
+        }
+
+        console.log("Fetched template:", template);
+        
+        // Get HTML content
+        let htmlContent = "";
+        
+        // If htmlRef appears to be a filename instead of raw HTML, try to fetch it from htmlUrl
+        if (template.htmlUrl) {
+          console.log("Fetching HTML from URL:", template.htmlUrl);
+          try {
+            const htmlResponse = await fetch(template.htmlUrl);
+            if (htmlResponse.ok) {
+              htmlContent = await htmlResponse.text();
+              console.log("HTML content fetched successfully", htmlContent.substring(0, 100) + "...");
+            } else {
+              console.warn("HTML fetch failed, using htmlRef instead:", template.htmlRef);
+              htmlContent = template.htmlRef;
+            }
+          } catch (htmlError) {
+            console.error("Error fetching HTML content:", htmlError);
+            htmlContent = template.htmlRef;
+          }
+        } else {
+          console.log("Using htmlRef directly as content:", template.htmlRef);
+          htmlContent = template.htmlRef;
+        }
+        
+        // Update form with template data - ensure all fields are populated correctly
+        const formData = {
+          name: template.name || "",
+          type: template.type || "",
+          tags: template.tags || [],
+          html: htmlContent || "",
+          jsonData: template.jsonData || {},
+          isVisible: template.isVisible !== undefined ? template.isVisible : true,
+        };
+        
+        console.log("Updating form with data:", formData);
+        form.reset(formData);
+      } catch (error) {
+        console.error("Error fetching template:", error);
+        toast.error("Failed to load template");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTemplate();
+  }, [templateId, form, router]);
 
   const handleAddTag = () => {
     if (customTagInput.trim()) {
@@ -84,45 +186,78 @@ export default function Editor() {
     form.setValue("tags", updatedTags, { shouldValidate: true });
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsPublishing(true);
+  const onSubmit: SubmitHandler<FormValues> = (values) => {
+    if (!templateId) return;
+    
+    setIsSaving(true);
+    console.log("Submitting form values:", values);
 
-    try {
-      const response = await fetch("/api/templates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    fetch(`/api/templates/${templateId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        template: {
+          htmlRef: values.html, // This sends the HTML content directly
+          type: values.type,
+          tags: values.tags,
+          name: values.name,
+          jsonData: values.jsonData,
+          isVisible: values.isVisible,
         },
-        body: JSON.stringify({
-          template: {
-            htmlRef: values.html,
-            type: values.type,
-            tags: values.tags,
-            name: values.name,
-            jsonData: values.jsonData,
-            version: 1,
-            isLatest: true,
-            parentId: null,
-            childIds: [],
-            publishedAt: null,
-            placeholders: [],
-            collectionId: null,
-          },
-        }),
+      }),
+    })
+    .then(response => {
+      console.log("Update response status:", response.status, response.statusText);
+      return response.json();
+    })
+    .then(result => {
+      console.log("Update response data:", result);
+
+      if (result.template) {
+        toast.success("Template updated successfully!");
+        // Give a slight delay before redirecting to allow the success toast to be seen
+        setTimeout(() => {
+          router.push("/dashboard/templates");
+        }, 1500);
+      } else {
+        toast.error(`Failed to update: ${result.error || "Unknown error"}`);
+      }
+    })
+    .catch(error => {
+      console.error("Error updating template:", error);
+      toast.error("Failed to update template");
+    })
+    .finally(() => {
+      setIsSaving(false);
+    });
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateId) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: "DELETE",
       });
 
-      const result = await response.json();
-
       if (response.ok) {
-        toast.success("Template published to library successfully!");
+        toast.success("Template deleted successfully");
+        // Redirect to templates list
+        setTimeout(() => {
+          router.push("/dashboard/templates");
+        }, 1500);
       } else {
-        toast.error(`Failed to publish: ${result.error || "Unknown error"}`);
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete template");
       }
     } catch (error) {
-      console.error("Error publishing template:", error);
-      toast.error("Failed to publish template");
+      console.error("Error deleting template:", error);
+      toast.error(`Failed to delete template: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
-      setIsPublishing(false);
+      setIsDeleting(false);
     }
   };
 
@@ -188,12 +323,70 @@ export default function Editor() {
     }
   };
 
+  // Add a function to toggle template visibility
+  const toggleVisibility = async () => {
+    if (!templateId) return;
+    
+    try {
+      const response = await fetch(`/api/templates/${templateId}/visibility`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isVisible: !isVisible
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Visibility update response:", result);
+        
+        // Update form state
+        form.setValue("isVisible", !isVisible);
+        
+        // Show success message
+        toast.success(`Template ${!isVisible ? 'shown' : 'hidden'} successfully`);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update visibility");
+      }
+    } catch (error) {
+      console.error("Error toggling template visibility:", error);
+      toast.error("Failed to update template visibility");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Loading template...</div>
+      </div>
+    );
+  }
+
   return (
     <main className="p-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Template Editor</h1>
+        <h1 className="text-3xl font-bold">Edit Template</h1>
         <div className="flex gap-2">
-          <Button 
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard/templates")}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant={isVisible ? "default" : "secondary"}
+            onClick={toggleVisibility}
+          >
+            {isVisible ? (
+              <span className="flex items-center gap-1"><Eye size={16} /> Hide Template</span>
+            ) : (
+              <span className="flex items-center gap-1"><EyeOff size={16} /> Show Template</span>
+            )}
+          </Button>
+          <Button
             variant="secondary"
             onClick={handleDownloadImage}
             disabled={isDownloading}
@@ -210,18 +403,45 @@ export default function Editor() {
               </span>
             )}
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this template? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteTemplate}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button
             onClick={form.handleSubmit(onSubmit)}
             size="lg"
-            disabled={isPublishing}
+            disabled={isSaving}
           >
-            {isPublishing ? "Publishing..." : "Publish"}
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-6">
               <div className="space-y-5 p-6 border border-gray-200 rounded-md bg-gray-50">
@@ -229,7 +449,7 @@ export default function Editor() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={typedControl}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -243,7 +463,7 @@ export default function Editor() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={typedControl}
                     name="type"
                     render={({ field }) => (
                       <FormItem>
@@ -272,7 +492,7 @@ export default function Editor() {
                 </div>
 
                 <FormField
-                  control={form.control}
+                  control={typedControl}
                   name="tags"
                   render={() => (
                     <FormItem>
@@ -356,7 +576,7 @@ export default function Editor() {
               </div>
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="html"
                 render={() => (
                   <FormItem className="space-y-0">
@@ -372,7 +592,7 @@ export default function Editor() {
               />
 
               <FormField
-                control={form.control}
+                control={typedControl}
                 name="jsonData"
                 render={() => (
                   <FormItem className="space-y-0">
@@ -400,5 +620,13 @@ export default function Editor() {
       </Form>
       <Toaster richColors position="top-right" />
     </main>
+  );
+}
+
+export default function EditTemplate() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <EditTemplateContent />
+    </Suspense>
   );
 }
