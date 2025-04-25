@@ -52,6 +52,7 @@ export interface ICollection extends Document {
   name: string;
   tags: string[];
   placeholders: Record<string, unknown>;
+  templateIds: Types.ObjectId[] | ITemplate[];
   createdAt: Date;
   updatedAt: Date;
 }

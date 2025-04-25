@@ -65,7 +65,8 @@ const TemplateSchema = new Schema(
 );
 
 const Template =
-  (mongoose.models.Template as mongoose.Model<ITemplate>) ||
-  mongoose.model<ITemplate>("Template", TemplateSchema);
+  mongoose.models && "Template" in mongoose.models
+    ? mongoose.models.Template
+    : mongoose.model<ITemplate>("Template", TemplateSchema);
 
 export default Template;
