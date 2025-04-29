@@ -62,8 +62,10 @@
             <div class="flex flex-col justify-end flex-1 w-full">
                 <!-- bars -->
                 <div id="bars"
-                    class="flex items-end justify-between gap-1 h-[470px] relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-white/70">
+                    class="flex items-end justify-between gap-1 h-[470px] relative">
                 </div>
+
+                <div class="w-full h-[4px] bg-gradient-to-r from-transparent to-white"></div>
 
                 <!-- rating numbers -->
                 <div id="numbers" class="flex justify-between mt-6"></div>
@@ -74,8 +76,6 @@
                 </div>
             </div>
         </div>
-
-        <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent to-white"></div>
 
         <!-- powered-by strip -->
         <!-- <div class="w-full flex items-end justify-center gap-2.5">
@@ -129,7 +129,6 @@
                 console.warn('Using fallback distribution', e);
                 dist = {
                     values: [0, 0, 0, 0, 0, 0, 10, 10, 50, 30],
-                    maxValue: 50,
                     labels: { left: "Not likely", right: "Very likely" }
                 };
             }
@@ -156,7 +155,7 @@
             const barsEl = document.getElementById('bars');
             const numsEl = document.getElementById('numbers');
             const vals = dist.values;
-            const maxVal = dist.maxValue || Math.max(...vals);
+            const maxVal = Math.max(...vals);
             const maxH = 400;                       // px for tallest bar
 
             barsEl.innerHTML = '';
