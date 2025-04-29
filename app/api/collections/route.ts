@@ -5,6 +5,7 @@ import { Collection } from "@/models";
 export async function GET() {
   try {
     await dbConnect();
+    // @ts-expect-error - Mongoose typing issue
     const collections = await Collection.find().populate("templateIds").lean();
 
     return NextResponse.json({ collections });
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
     }
 
     await dbConnect();
+    // @ts-expect-error - Mongoose typing issue
     const collection = await Collection.create({
       name,
       templateIds,

@@ -18,6 +18,7 @@ export async function GET(
     }
 
     await dbConnect();
+    // @ts-expect-error - Mongoose typing issue
     const collection = await Collection.findById(collectionId)
       .populate("templateIds")
       .lean();
@@ -61,6 +62,7 @@ export async function PUT(
       .map((id: string) => new Types.ObjectId(id));
 
     await dbConnect();
+    // @ts-expect-error - Mongoose typing issue
     const collection = await Collection.findByIdAndUpdate(
       collectionId,
       { name, templateIds: validTemplateIds },
@@ -99,6 +101,7 @@ export async function DELETE(
     }
 
     await dbConnect();
+    // @ts-expect-error - Mongoose typing issue
     const collection = await Collection.findByIdAndDelete(collectionId);
 
     if (!collection) {
