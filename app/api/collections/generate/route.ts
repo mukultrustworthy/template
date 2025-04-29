@@ -95,7 +95,9 @@ const getSimplifiedWordCounts = (jsonData: Record<string, unknown>): string => {
 
 const generateJsonDataFromSlide = async (
   slide: Slide,
-  template: ITemplate
+  template: ITemplate,
+  companyLogo: string = "",
+  accentColor: string = ""
 ): Promise<Record<string, unknown>> => {
   // Get simplified word counts - faster than the full analysis
   const wordCountsText = getSimplifiedWordCounts(template.jsonData);
@@ -155,7 +157,7 @@ const generateJsonDataFromSlide = async (
     template.jsonData,
     null,
     2
-  )}\n\nKey word counts:\n${wordCountsText}\n\nContent to use:\n${promptContent}\n\nEnsure your content respects the field word counts. Use simple language.`;
+  )}\n\nKey word counts:\n${wordCountsText}\n\nContent to use:\n${promptContent}\n\nCommon values to use if applicable:\n- companyLogo: ${companyLogo}\n- accentColor: ${accentColor}\n\nIf the JSON structure contains fields named 'companyLogo' or 'accentColor', use the provided values. Ensure your content respects the field word counts. Use simple language.`;
 
   try {
     // Use GPT-3.5-turbo instead of GPT-4 for faster responses
@@ -166,13 +168,25 @@ const generateJsonDataFromSlide = async (
         {
           role: "system",
           content:
-            "Return valid JSON only. Match the template structure exactly.",
+            "Return valid JSON only. Match the template structure exactly. If the template has fields named 'companyLogo' or 'accentColor', use the provided values for these fields.",
         },
         { role: "user", content: basePrompt },
       ],
     });
 
-    return JSON.parse(gptRes.choices[0].message.content || "{}");
+    // Parse the generated JSON
+    const generatedJson = JSON.parse(gptRes.choices[0].message.content || "{}");
+
+    // Ensure companyLogo and accentColor are used if fields exist
+    if (companyLogo && Object.keys(generatedJson).includes("companyLogo")) {
+      generatedJson.companyLogo = companyLogo;
+    }
+
+    if (accentColor && Object.keys(generatedJson).includes("accentColor")) {
+      generatedJson.accentColor = accentColor;
+    }
+
+    return generatedJson;
   } catch (err) {
     console.error("JSON generation error:", err);
     return {};
@@ -208,6 +222,14 @@ export async function POST(request: NextRequest) {
     }
 
     const caseStudyJson = await caseStudyRes.json();
+
+    const coverSlide = caseStudyJson.slides.find(
+      (slide: Slide) => slide.category === "cover"
+    );
+
+    const companyLogo = coverSlide?.coverPageCompanyLogo || "";
+    const accentColor = coverSlide?.coverColor || "";
+
     const templates = collection?.templateIds as ITemplate[];
 
     // Process all slides in parallel for major speed improvement
@@ -217,7 +239,7 @@ export async function POST(request: NextRequest) {
 
       if (!template) return [type, null];
 
-      const jsonData = await generateJsonDataFromSlide(slide, template);
+      const jsonData = await generateJsonDataFromSlide(slide, template, companyLogo, accentColor);
       return [type, jsonData];
     });
 
