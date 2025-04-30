@@ -110,13 +110,40 @@ export const DEFAULT_HTML = `<!DOCTYPE html>
 
 // Default JSON data with placeholders
 export const DEFAULT_JSON = {
-  accentColor: "#3498db",
-  companyLogo: "https://placehold.co/60x60/3498db/white?text=T",
-  question: "What has been your experience with our service?",
-  answer: "Tech Solutions transformed our customer experience. Their platform is intuitive and their support team is always responsive. We've been able to streamline our processes significantly.",
-  author: {
-    name: "Mark Johnson",
-    designation: "CTO, Bright Innovations",
-    image: "https://placehold.co/40x40/3498db/white?text=M"
+  "question": "On a scale of 1 to 10, how likely are you to recommend Acme Labs to other businesses?",
+  "companyLogo": "https://pub-283d55190c724937868ac6547276a459.r2.dev/guest/survey/email_logo.png",
+  "options": [
+    "Real-time collaboration",
+    "Automation workflows",
+    "Analytics dashboard",
+    "Integration capabidwadawliawdwaties",
+    "Integration capabidwadawliawdwaties"
+  ],
+  "selectedIndex": [
+    1,
+    2
+  ],
+  "author": {
+    "name": "Michael Rodriguez",
+    "designation": "VP of Operations, TechSolutions Inc.",
+    "image": "https://placehold.co/120x120/0f349d/white?text=MR"
+  },
+  "accentColor": "#4d194d",
+  "numberOfResponses": 100,
+  "companyName": "TechSolutions Inc.",
+  "ratingDistribution": {
+    "values": [
+      2,
+      5,
+      10,
+      7,
+      3
+    ],
+    "maxValue": 10,
+    "labels": {
+      "left": "Poor",
+      "center": "Average",
+      "right": "Excellent"
+    }
   }
 }; 
