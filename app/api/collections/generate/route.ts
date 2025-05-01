@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     // Fetch case study and collection data in parallel
     const [caseStudyRes, collection] = await Promise.all([
       fetch(
-        `https://staging.api.trustworthy.so/trustworthy/case-studies/slides/${caseStudyId}`
+        `https://api2.trustworthy.io/trustworthy/case-studies/slides/${caseStudyId}`
       ),
       // @ts-expect-error - Mongoose typing issue
       Collection.findById(collectionId).populate("templateIds"),
