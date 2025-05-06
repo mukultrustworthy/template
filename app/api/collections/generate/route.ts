@@ -204,11 +204,14 @@ export async function POST(request: NextRequest) {
 
     const { caseStudyId, collectionId } = await request.json();
 
+    const BASE_URL =
+      process.env.NODE_ENV === "production"
+        ? "https://api2.trustworthy.io/trustworthy"
+        : "https://staging.api.trustworthy.so/trustworthy";
+
     // Fetch case study and collection data in parallel
     const [caseStudyRes, collection] = await Promise.all([
-      fetch(
-        `https://api2.trustworthy.io/trustworthy/case-studies/slides/${caseStudyId}`
-      ),
+      fetch(`${BASE_URL}/case-studies/slides/${caseStudyId}`),
       // @ts-expect-error - Mongoose typing issue
       Collection.findById(collectionId).populate("templateIds"),
     ]);
@@ -239,7 +242,12 @@ export async function POST(request: NextRequest) {
 
       if (!template) return [type, null];
 
-      const jsonData = await generateJsonDataFromSlide(slide, template, companyLogo, accentColor);
+      const jsonData = await generateJsonDataFromSlide(
+        slide,
+        template,
+        companyLogo,
+        accentColor
+      );
       return [type, jsonData];
     });
 
