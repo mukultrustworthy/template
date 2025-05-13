@@ -19,6 +19,7 @@ export interface TemplateRequest {
   childIds?: string[];
   htmlUrl?: string;
   isVisible?: boolean;
+  production?: boolean;
 }
 
 export interface TemplateRecord {
@@ -39,6 +40,7 @@ export interface TemplateRecord {
   htmlUrl: string;
   templateId?: string;
   isVisible?: boolean;
+  production?: boolean;
 }
 
 const R2 = new S3Client({
@@ -114,7 +116,8 @@ export async function createTemplate(
       createdBy: template.createdBy || "current-user@example.com",
       htmlRef: "placeholder", // We'll update this later
       htmlUrl: "",
-      isVisible: template.isVisible || true,
+      isVisible: template.isVisible !== undefined ? template.isVisible : true,
+      production: template.production || false,
     };
 
     await templateCollection.insertOne(templateDoc, { session });
@@ -164,17 +167,29 @@ export async function getAllTemplates() {
   return templates;
 }
 
-export async function getTemplatesByType(type: string) {
+export async function getTemplatesByType(type: string, productionOnly: boolean = false) {
   await dbConnect();
+  
+  const query: { type: string; $or: Array<Record<string, unknown>> } = { type, $or: [] };
+  
+  if (productionOnly) {
+    // Only return production templates
+    query.$or = [
+      { isVisible: true, production: true },
+      { isVisible: { $exists: false }, production: true }
+    ];
+  } else {
+    // Return all templates regardless of production status
+    query.$or = [
+      { isVisible: true, production: true },
+      { isVisible: true, production: { $exists: false } },
+      { isVisible: { $exists: false }, production: true },
+      { isVisible: { $exists: false }, production: { $exists: false } }
+    ];
+  }
+  
   // @ts-expect-error - Mongoose typing issue
-  const templates = await Template.find({
-    type,
-    $or: [
-      { isVisible: true },
-      { isVisible: { $exists: false } },
-      { production: true },
-    ],
-  }).lean();
+  const templates = await Template.find(query).lean();
 
   return templates;
 }
@@ -209,7 +224,8 @@ export async function getTemplateById(
       ? template.collectionId.toString()
       : null,
     templateId: template._id.toString(),
-    isVisible: template.isVisible || true,
+    isVisible: template.isVisible !== undefined ? template.isVisible : true,
+    production: template.production !== undefined ? template.production : false,
   };
 }
 
@@ -324,7 +340,8 @@ export async function updateTemplate(
         ? updatedTemplate.collectionId.toString()
         : null,
       templateId: updatedTemplate._id.toString(),
-      isVisible: updatedTemplate.isVisible || true,
+      isVisible: updatedTemplate.isVisible !== undefined ? updatedTemplate.isVisible : true,
+      production: updatedTemplate.production !== undefined ? updatedTemplate.production : false,
     };
   } catch (error) {
     console.error("Error updating template:", error);

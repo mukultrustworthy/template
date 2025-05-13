@@ -47,6 +47,7 @@ const formSchema = z.object({
   tags: z.array(z.string()),
   html: z.string(),
   jsonData: z.record(z.unknown()),
+  production: z.boolean(),
 });
 
 export default function Editor() {
@@ -64,11 +65,12 @@ export default function Editor() {
       tags: [],
       html: DEFAULT_HTML,
       jsonData: DEFAULT_JSON,
+      production: false,
     },
   });
 
   // Get current values from form
-  const { tags, html, jsonData } = form.watch();
+  const { tags, html, jsonData, production } = form.watch();
 
   const handleAddTag = () => {
     if (customTagInput.trim()) {
@@ -107,6 +109,7 @@ export default function Editor() {
             publishedAt: null,
             placeholders: [],
             collectionId: null,
+            production: values.production,
           },
         }),
       });
@@ -266,6 +269,28 @@ export default function Editor() {
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <FormField
+                    control={form.control}
+                    name="production"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Production Ready (Deploy to production)
+                        </FormLabel>
                       </FormItem>
                     )}
                   />

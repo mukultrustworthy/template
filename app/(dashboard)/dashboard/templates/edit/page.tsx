@@ -56,6 +56,7 @@ const formSchema = z.object({
   html: z.string(),
   jsonData: z.record(z.unknown()),
   isVisible: z.boolean(),
+  production: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -85,11 +86,12 @@ function EditTemplateContent() {
       html: "",
       jsonData: {},
       isVisible: true,
+      production: false,
     },
   });
 
   // Get current values from form
-  const { tags, html, jsonData, isVisible } = form.watch();
+  const { tags, html, jsonData, isVisible, production } = form.watch();
 
   // Fix for FormField control prop
   const { control } = form;
@@ -157,6 +159,7 @@ function EditTemplateContent() {
           html: htmlContent || "",
           jsonData: template.jsonData || {},
           isVisible: template.isVisible !== undefined ? template.isVisible : true,
+          production: template.production !== undefined ? template.production : false,
         };
         
         console.log("Updating form with data:", formData);
@@ -205,6 +208,7 @@ function EditTemplateContent() {
           name: values.name,
           jsonData: values.jsonData,
           isVisible: values.isVisible,
+          production: values.production,
         },
       }),
     })
@@ -486,6 +490,48 @@ function EditTemplateContent() {
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-6 mt-4">
+                  <FormField
+                    control={typedControl}
+                    name="isVisible"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Visible in Library
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={typedControl}
+                    name="production"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Production Ready
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
