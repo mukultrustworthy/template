@@ -61,6 +61,10 @@ const TemplateSchema = new Schema(
       type: String,
       default: "",
     },
+    production: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

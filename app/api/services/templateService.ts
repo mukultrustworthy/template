@@ -169,7 +169,11 @@ export async function getTemplatesByType(type: string) {
   // @ts-expect-error - Mongoose typing issue
   const templates = await Template.find({
     type,
-    $or: [{ isVisible: true }, { isVisible: { $exists: false } }],
+    $or: [
+      { isVisible: true },
+      { isVisible: { $exists: false } },
+      { production: true },
+    ],
   }).lean();
 
   return templates;
