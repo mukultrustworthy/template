@@ -70,7 +70,7 @@ export default function Editor() {
   });
 
   // Get current values from form
-  const { tags, html, jsonData, production } = form.watch();
+  const { tags, html, jsonData } = form.watch();
 
   const handleAddTag = () => {
     if (customTagInput.trim()) {

@@ -91,7 +91,7 @@ function EditTemplateContent() {
   });
 
   // Get current values from form
-  const { tags, html, jsonData, isVisible, production } = form.watch();
+  const { tags, html, jsonData, isVisible } = form.watch();
 
   // Fix for FormField control prop
   const { control } = form;
