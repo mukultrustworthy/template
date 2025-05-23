@@ -116,9 +116,16 @@ const TemplateCard = ({ template, templateHtmlContent, onDelete }: TemplateCardP
                 </span>
               )}
             </CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              {template.type}
-            </Badge>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">
+                {template.type}
+              </Badge>
+              {template.production && (
+                <Badge variant="default" className="text-xs bg-green-600">
+                  Production
+                </Badge>
+              )}
+            </div>
           </div>
           <Badge variant={template.isLatest ? "default" : "outline"}>
             v{template.version}
@@ -223,6 +230,7 @@ export default function Templates() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTag, setFilterTag] = useState("");
   const [showHidden, setShowHidden] = useState(false);
+  const [productionOnly, setProductionOnly] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<TemplateRecord[]>([]);
@@ -318,8 +326,10 @@ export default function Templates() {
     const matchesTag = filterTag === "" || template.tags?.includes(filterTag);
     
     const matchesVisibility = showHidden || template.isVisible !== false;
+    
+    const matchesProduction = !productionOnly || template.production === true;
 
-    return matchesSearch && matchesTag && matchesVisibility;
+    return matchesSearch && matchesTag && matchesVisibility && matchesProduction;
   });
 
   const handleDeleteTemplate = async (templateId: string) => {
@@ -395,7 +405,7 @@ export default function Templates() {
               </select>
             </div>
             
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-4 items-center">
               <Label htmlFor="showHidden" className="cursor-pointer flex items-center gap-2">
                 <input
                   id="showHidden"
@@ -405,6 +415,17 @@ export default function Templates() {
                   onChange={(e) => setShowHidden(e.target.checked)}
                 />
                 Show hidden templates
+              </Label>
+              
+              <Label htmlFor="productionOnly" className="cursor-pointer flex items-center gap-2">
+                <input
+                  id="productionOnly"
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={productionOnly}
+                  onChange={(e) => setProductionOnly(e.target.checked)}
+                />
+                Production only
               </Label>
             </div>
           </div>

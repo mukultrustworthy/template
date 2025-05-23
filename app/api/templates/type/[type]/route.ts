@@ -7,6 +7,11 @@ export async function GET(
 ) {
   try {
     const { type } = await params;
+    const url = new URL(request.url);
+    
+    // Default to production=true unless explicitly set to false
+    const production = url.searchParams.get('production');
+    const productionOnly = production !== 'false';
 
     if (!type) {
       return NextResponse.json(
@@ -15,11 +20,16 @@ export async function GET(
       );
     }
 
-    const templates = await getTemplatesByType(type);
+    const templates = await getTemplatesByType(type, productionOnly);
 
-    console.log(templates);
-
-    return NextResponse.json({ templates });
+    return NextResponse.json({ 
+      templates,
+      metadata: {
+        type,
+        productionOnly,
+        count: templates.length
+      }
+    });
   } catch (error) {
     console.error("Error fetching templates by type:", error);
     return NextResponse.json(
