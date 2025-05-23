@@ -79,4 +79,8 @@ export const TEMPLATE_TYPES = [
     label: "About",
     value: "about",
   },
+  {
+    label: "Moments",
+    value: "moments",
+  },
 ];
