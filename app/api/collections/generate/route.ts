@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     const { caseStudyId, collectionId } = await request.json();
 
     const PRODUCTION_URL = "https://api2.trustworthy.io/trustworthy";
-    const STAGING_URL = "https://staging.api.trustworthy.so/trustworthy";
+    const STAGING_URL = "https://staging.api2.trustworthy.io/trustworthy";
 
     // Try production URL first
     let caseStudyRes = await fetch(
